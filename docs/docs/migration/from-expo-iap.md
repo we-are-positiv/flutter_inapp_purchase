@@ -87,11 +87,11 @@ const subscriptions = await getProducts({
 ```dart
 // Fetch products
 final products = await FlutterInappPurchase.instance
-    .getProducts(['product1', 'product2']);
+    .requestProducts(skus: ['product1', 'product2'], type: 'inapp');
 
 // Fetch subscriptions
 final subscriptions = await FlutterInappPurchase.instance
-    .getSubscriptions(['sub1', 'sub2']);
+    .requestProducts(skus: ['sub1', 'sub2'], type: 'subs');
 ```
 
 ### Purchase Flow
@@ -342,7 +342,7 @@ class _StoreState extends State<Store> {
     if (connected) {
       try {
         final items = await FlutterInappPurchase.instance
-            .getProducts(productIds);
+            .requestProducts(skus: productIds, type: 'inapp');
         setState(() {
           products = items;
         });

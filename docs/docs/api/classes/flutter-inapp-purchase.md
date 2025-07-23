@@ -103,17 +103,28 @@ final products = await FlutterInappPurchase.instance.requestProducts(
 );
 ```
 
-#### getProducts()
+#### requestProducts()
+```dart
+Future<List<IAPItem>> requestProducts({
+  required List<String> skus,
+  String type = 'inapp',
+})
+```
+Unified method to retrieve products or subscriptions.
+- `type: 'inapp'` - for regular products (consumables and non-consumables)
+- `type: 'subs'` - for subscription products
+
+#### getProducts() [Deprecated]
 ```dart
 Future<List<IAPItem>> getProducts(List<String> productIds)
 ```
-Legacy method to retrieve non-subscription products.
+Legacy method to retrieve non-subscription products. Use `requestProducts()` instead.
 
-#### getSubscriptions()
+#### getSubscriptions() [Deprecated]
 ```dart
 Future<List<IAPItem>> getSubscriptions(List<String> productIds)
 ```
-Legacy method to retrieve subscription products.
+Legacy method to retrieve subscription products. Use `requestProducts()` instead.
 
 ### Purchase Management
 
@@ -283,6 +294,6 @@ class StoreService {
 This class maintains backward compatibility with the original API while also providing expo-iap compatible methods. When migrating from expo-iap, you can use the new methods that match the expo-iap interface:
 
 - `initConnection()` instead of `initialize()`
-- `requestProducts()` instead of `getProducts()`/`getSubscriptions()`
+- `requestProducts()` with type parameter instead of separate `getProducts()`/`getSubscriptions()` methods
 - `purchaseUpdatedListener` instead of `purchaseUpdated`
 - `purchaseErrorListener` instead of `purchaseError`

@@ -32,11 +32,17 @@ import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 // Initialize connection
 await FlutterInappPurchase.instance.initialize();
 
-// Get products
-List<IAPItem> products = await FlutterInappPurchase.instance.getProducts([
-  'com.example.product1',
-  'com.example.product2',
-]);
+// Get products (consumables and non-consumables)
+List<IAPItem> products = await FlutterInappPurchase.instance.requestProducts(
+  skus: ['com.example.product1', 'com.example.product2'],
+  type: 'inapp',
+);
+
+// Get subscriptions
+List<IAPItem> subscriptions = await FlutterInappPurchase.instance.requestProducts(
+  skus: ['com.example.premium_monthly'],
+  type: 'subs',
+);
 
 // Request purchase
 await FlutterInappPurchase.instance.requestPurchase('com.example.product1');

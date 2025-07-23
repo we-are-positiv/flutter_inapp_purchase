@@ -108,7 +108,7 @@ class StoreService extends ChangeNotifier {
   Future<void> _loadProducts() async {
     try {
       final allProductIds = [..._consumableIds, ..._nonConsumableIds];
-      _products = await _iap.getProducts(allProductIds);
+      _products = await _iap.requestProducts(skus: allProductIds, type: 'inapp');
       
       print('Loaded ${_products.length} products');
       notifyListeners();

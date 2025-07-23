@@ -83,7 +83,7 @@ class _SubscriptionStoreState extends State<SubscriptionStore> {
   Future<void> _loadSubscriptions() async {
     try {
       final subscriptions = await FlutterInappPurchase.instance
-          .getSubscriptions(_subscriptionIds);
+          .requestProducts(skus: _subscriptionIds, type: 'subs');
       
       setState(() {
         _subscriptions = subscriptions;

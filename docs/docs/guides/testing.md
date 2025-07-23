@@ -758,7 +758,7 @@ class PurchasePerformanceTest {
     
     // Measure product loading time
     stopwatch.start();
-    await FlutterInappPurchase.instance.getProducts(['test_product']);
+    await FlutterInappPurchase.instance.requestProducts(skus: ['test_product'], type: 'inapp');
     final loadTime = stopwatch.elapsedMilliseconds;
     stopwatch.reset();
     
@@ -799,7 +799,7 @@ class PurchasePerformanceTest {
       final stopwatch = Stopwatch()..start();
       
       try {
-        await FlutterInappPurchase.instance.getProducts(['test_product']);
+        await FlutterInappPurchase.instance.requestProducts(skus: ['test_product'], type: 'inapp');
       } catch (e) {
         // Continue testing
       }

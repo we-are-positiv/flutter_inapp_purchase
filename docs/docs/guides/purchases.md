@@ -96,7 +96,7 @@ class ProductLoader {
     try {
       // Load all products
       final allIds = [...consumableIds, ...nonConsumableIds];
-      final products = await _iap.getProducts(allIds);
+      final products = await _iap.requestProducts(skus: allIds, type: 'inapp');
       
       // Separate by type
       _consumables = products.where((p) => 

@@ -271,7 +271,7 @@ class ProductCache {
   static Future<IAPItem?> getProduct(String id) async {
     if (_cache.containsKey(id)) return _cache[id];
     
-    final products = await FlutterInappPurchase.instance.getProducts([id]);
+    final products = await FlutterInappPurchase.instance.requestProducts(skus: [id], type: 'inapp');
     if (products.isNotEmpty) {
       _cache[id] = products.first;
       return products.first;

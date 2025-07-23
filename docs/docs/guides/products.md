@@ -38,7 +38,7 @@ final List<String> productIds = [
 Future<void> loadProducts() async {
   try {
     List<IAPItem> products = await FlutterInappPurchase.instance
-        .getProducts(productIds);
+        .requestProducts(skus: productIds, type: 'inapp');
     
     for (var product in products) {
       print('Product: ${product.productId}');

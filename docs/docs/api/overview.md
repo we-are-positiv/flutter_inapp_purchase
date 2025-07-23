@@ -21,8 +21,10 @@ class FlutterInappPurchase {
   Future<String?> endConnection();
   
   // Product management
-  Future<List<IAPItem>> getProducts(List<String> skus);
-  Future<List<IAPItem>> getSubscriptions(List<String> skus);
+  Future<List<IAPItem>> requestProducts({
+    required List<String> skus,
+    String type = 'inapp', // 'inapp' or 'subs'
+  });
   
   // Purchase management
   Future<void> requestPurchase(String sku);
@@ -116,33 +118,31 @@ if (result == 'Billing is unavailable') {
 
 ### Product Management
 
-#### getProducts()
+#### requestProducts()
 ```dart
-Future<List<IAPItem>> getProducts(List<String> skus) async
+Future<List<IAPItem>> requestProducts({
+  required List<String> skus,
+  String type = 'inapp',
+}) async
 ```
-Fetches product information for the given SKUs.
+Fetches product or subscription information for the given SKUs.
 
 **Parameters**:
 - `skus`: List of product identifiers
+- `type`: Product type - `'inapp'` for regular products or `'subs'` for subscriptions
 
-**Returns**: List of available products
+**Returns**: List of available products or subscriptions
 
-**Example**:
+**Examples**:
 ```dart
+// Get regular products (consumables and non-consumables)
 List<IAPItem> products = await FlutterInappPurchase.instance
-    .getProducts(['coin_pack_100', 'remove_ads']);
+    .requestProducts(skus: ['coin_pack_100', 'remove_ads'], type: 'inapp');
+
+// Get subscriptions
+List<IAPItem> subscriptions = await FlutterInappPurchase.instance
+    .requestProducts(skus: ['premium_monthly', 'premium_yearly'], type: 'subs');
 ```
-
-#### getSubscriptions()
-```dart
-Future<List<IAPItem>> getSubscriptions(List<String> skus) async
-```
-Fetches subscription information for the given SKUs.
-
-**Parameters**:
-- `skus`: List of subscription identifiers
-
-**Returns**: List of available subscriptions
 
 ### Purchase Management
 
@@ -304,7 +304,10 @@ await FlutterInappPurchase.instance.initialize();
 FlutterInappPurchase.purchaseUpdated.listen(handlePurchase);
 
 // 3. Load products
-var products = await FlutterInappPurchase.instance.getProducts(productIds);
+var products = await FlutterInappPurchase.instance.requestProducts(
+  skus: productIds, 
+  type: 'inapp'
+);
 
 // 4. Request purchase
 await FlutterInappPurchase.instance.requestPurchase(productId);
@@ -319,7 +322,10 @@ void handlePurchase(PurchasedItem? item) {
 
 ```dart
 // 1. Load subscriptions
-var subs = await FlutterInappPurchase.instance.getSubscriptions(subIds);
+var subs = await FlutterInappPurchase.instance.requestProducts(
+  skus: subIds, 
+  type: 'subs'
+);
 
 // 2. Request subscription
 await FlutterInappPurchase.instance.requestSubscription(subId);

@@ -81,11 +81,17 @@ class _SimpleStoreState extends State<SimpleStore> {
     try {
       // Get consumable products
       List<IAPItem> products = 
-          await FlutterInappPurchase.instance.getProducts(_productIds);
+          await FlutterInappPurchase.instance.requestProducts(
+            skus: _productIds,
+            type: 'inapp',
+          );
       
       // Get subscriptions
       List<IAPItem> subscriptions = 
-          await FlutterInappPurchase.instance.getSubscriptions(_subscriptionIds);
+          await FlutterInappPurchase.instance.requestProducts(
+            skus: _subscriptionIds,
+            type: 'subs',
+          );
       
       setState(() {
         _products = products;
@@ -287,11 +293,11 @@ Fetch products using their IDs:
 ```dart
 // Regular products
 List<IAPItem> products = await FlutterInappPurchase.instance
-    .getProducts(['product_id_1', 'product_id_2']);
+    .requestProducts(skus: ['product_id_1', 'product_id_2'], type: 'inapp');
 
 // Subscriptions
 List<IAPItem> subscriptions = await FlutterInappPurchase.instance
-    .getSubscriptions(['subscription_id_1', 'subscription_id_2']);
+    .requestProducts(skus: ['subscription_id_1', 'subscription_id_2'], type: 'subs');
 ```
 
 ### 3. Purchase Flow

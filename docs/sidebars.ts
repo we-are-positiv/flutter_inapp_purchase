@@ -64,7 +64,6 @@ const sidebars: SidebarsConfig = {
       items: [
         'api/methods/init-connection',
         'api/methods/get-products',
-        'api/methods/get-subscriptions',
         'api/methods/request-purchase',
         'api/methods/request-subscription',
         'api/methods/finish-transaction',

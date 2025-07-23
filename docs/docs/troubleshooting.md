@@ -124,7 +124,7 @@ flutter pub upgrade
    
    // Check exact product ID matching
    final products = await FlutterInappPurchase.instance
-       .getProducts(['exact.product.id.from.store']);
+       .requestProducts(skus: ['exact.product.id.from.store'], type: 'inapp');
    ```
 
 2. **Check store console:**
@@ -191,7 +191,7 @@ flutter pub upgrade
 
 2. **Verify product exists:**
    ```dart
-   final products = await FlutterInappPurchase.instance.getProducts([productId]);
+   final products = await FlutterInappPurchase.instance.requestProducts(skus: [productId], type: 'inapp');
    if (products.isEmpty) {
      print('Product not found: $productId');
      return;
@@ -419,7 +419,7 @@ await validatePurchaseOnServer(purchaseToken, item.productId);
          return _cachedProducts!;
        }
        
-       _cachedProducts = await FlutterInappPurchase.instance.getProducts(ids);
+       _cachedProducts = await FlutterInappPurchase.instance.requestProducts(skus: ids, type: 'inapp');
        _cacheTime = now;
        return _cachedProducts!;
      }
@@ -430,7 +430,7 @@ await validatePurchaseOnServer(purchaseToken, item.productId);
    ```dart
    // Load all products at once instead of individual requests
    final allProducts = await FlutterInappPurchase.instance
-       .getProducts(allProductIds);
+       .requestProducts(skus: allProductIds, type: 'inapp');
    ```
 
 ## Debug Tools
@@ -452,7 +452,7 @@ Future<void> debugConnection() async {
     
     // Test with known product
     final products = await FlutterInappPurchase.instance
-        .getProducts(['android.test.purchased']); // Android test product
+        .requestProducts(skus: ['android.test.purchased'], type: 'inapp'); // Android test product
     print('Test products: ${products.length}');
   } catch (e) {
     print('Debug error: $e');

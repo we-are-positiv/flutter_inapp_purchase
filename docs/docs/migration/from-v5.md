@@ -235,7 +235,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future _getProduct() async {
-    List<IAPItem> items = await FlutterInappPurchase.instance.getProducts(_kProductIds);
+    List<IAPItem> items = await FlutterInappPurchase.instance.requestProducts(skus: _kProductIds, type: 'inapp');
     setState(() {
       _items = items;
     });
@@ -306,7 +306,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _getProduct() async {
     try {
       List<IAPItem> items = await FlutterInappPurchase.instance
-          .getProducts(_kProductIds);
+          .requestProducts(skus: _kProductIds, type: 'inapp');
       setState(() {
         _items = items;
       });

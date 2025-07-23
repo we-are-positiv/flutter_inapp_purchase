@@ -56,7 +56,7 @@ class SubscriptionManager {
   Future<void> loadSubscriptions() async {
     try {
       _subscriptions = await FlutterInappPurchase.instance
-          .getSubscriptions(_subscriptionIds);
+          .requestProducts(skus: _subscriptionIds, type: 'subs');
       
       // Sort by price or preference
       _subscriptions.sort((a, b) => 
