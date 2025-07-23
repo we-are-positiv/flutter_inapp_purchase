@@ -9,11 +9,14 @@ import 'package:platform/platform.dart';
 import 'Store.dart';
 import 'modules.dart';
 import 'utils.dart';
+import 'types.dart' as iap_types;
 
 export 'modules.dart';
+export 'types.dart' hide ConnectionResult;
+export 'use_iap.dart';
+export 'Store.dart';
 
 /// A enumeration of in-app purchase types for Android
-/// https://developer.android.com/reference/com/android/billingclient/api/BillingClient.ProductType
 enum _TypeInApp { inapp, subs }
 
 class FlutterInappPurchase {
@@ -21,39 +24,43 @@ class FlutterInappPurchase {
       FlutterInappPurchase(FlutterInappPurchase.private(const LocalPlatform()));
 
   static StreamController<PurchasedItem?>? _purchaseController;
-
-  static Stream<PurchasedItem?> get purchaseUpdated =>
-      _purchaseController!.stream;
+  static Stream<PurchasedItem?> get purchaseUpdated {
+    _purchaseController ??= StreamController<PurchasedItem?>.broadcast();
+    return _purchaseController!.stream;
+  }
 
   static StreamController<PurchaseResult?>? _purchaseErrorController;
-
-  static Stream<PurchaseResult?> get purchaseError =>
-      _purchaseErrorController!.stream;
+  static Stream<PurchaseResult?> get purchaseError {
+    _purchaseErrorController ??= StreamController<PurchaseResult?>.broadcast();
+    return _purchaseErrorController!.stream;
+  }
 
   static StreamController<ConnectionResult>? _connectionController;
-
-  static Stream<ConnectionResult> get connectionUpdated =>
-      _connectionController!.stream;
+  static Stream<ConnectionResult> get connectionUpdated {
+    _connectionController ??= StreamController<ConnectionResult>.broadcast();
+    return _connectionController!.stream;
+  }
 
   static StreamController<String?>? _purchasePromotedController;
-
-  static Stream<String?> get purchasePromoted =>
-      _purchasePromotedController!.stream;
+  static Stream<String?> get purchasePromoted {
+    _purchasePromotedController ??= StreamController<String?>.broadcast();
+    return _purchasePromotedController!.stream;
+  }
 
   static StreamController<int?>? _onInAppMessageController;
-  static Stream<int?> get inAppMessageAndroid =>
-      _onInAppMessageController!.stream;
+  static Stream<int?> get inAppMessageAndroid {
+    _onInAppMessageController ??= StreamController<int?>.broadcast();
+    return _onInAppMessageController!.stream;
+  }
 
   /// Defining the [MethodChannel] for Flutter_Inapp_Purchase
   static final MethodChannel _channel = const MethodChannel('flutter_inapp');
-
   static MethodChannel get channel => _channel;
 
   final Platform _pf;
   late http.Client _httpClient;
 
   static Platform get _platform => instance._pf;
-
   static http.Client get _client => instance._httpClient;
 
   factory FlutterInappPurchase(FlutterInappPurchase _instance) {
@@ -66,9 +73,414 @@ class FlutterInappPurchase {
       : _pf = platform,
         _httpClient = client ?? http.Client();
 
+  // New expo-iap compatible event controllers
+  final StreamController<iap_types.Purchase> _purchaseUpdatedController = StreamController<iap_types.Purchase>.broadcast();
+  final StreamController<iap_types.PurchaseError> _expoIAPPurchaseErrorController = StreamController<iap_types.PurchaseError>.broadcast();
+
+  /// Purchase updated event stream (expo-iap compatible)
+  Stream<iap_types.Purchase> get purchaseUpdatedListener => _purchaseUpdatedController.stream;
+
+  /// Purchase error event stream (expo-iap compatible)
+  Stream<iap_types.PurchaseError> get purchaseErrorListener => _expoIAPPurchaseErrorController.stream;
+
+  bool _isInitialized = false;
+
+  /// Initialize connection (expo-iap compatible)
+  Future<void> initConnection() async {
+    if (_isInitialized) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_ALREADY_INITIALIZED,
+        message: 'IAP connection already initialized',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      // For expo-iap compatibility, call initConnection directly
+      await _setPurchaseListener();
+      if (_platform.isIOS) {
+        await _channel.invokeMethod('initConnection');
+      } else if (_platform.isAndroid) {
+        await _channel.invokeMethod('initConnection');
+      }
+      _isInitialized = true;
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_INITIALIZED,
+        message: 'Failed to initialize IAP connection: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// End connection (expo-iap compatible)
+  Future<void> endConnection() async {
+    if (!_isInitialized) {
+      return;
+    }
+
+    try {
+      // For expo-iap compatibility, call endConnection directly
+      if (_platform.isIOS) {
+        await _channel.invokeMethod('endConnection');
+      } else if (_platform.isAndroid) {
+        await _channel.invokeMethod('endConnection');
+      }
+      _isInitialized = false;
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to end IAP connection: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Request products (expo-iap compatible)
+  Future<List<iap_types.BaseProduct>> requestProducts(iap_types.RequestProductsParams params) async {
+    if (!_isInitialized) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_INITIALIZED,
+        message: 'IAP connection not initialized',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      print('[flutter_inapp_purchase] requestProducts called with skus: ${params.skus}');
+      List<IAPItem> items;
+      if (params.type == iap_types.PurchaseType.inapp) {
+        items = await getProducts(params.skus);
+      } else {
+        items = await getSubscriptions(params.skus);
+      }
+      print('[flutter_inapp_purchase] Received ${items.length} items from native');
+      for (var item in items) {
+        print('[flutter_inapp_purchase] Item: ${item.productId} - ${item.localizedPrice}');
+      }
+
+      return items.map((item) => _convertToProduct(item, params.type)).toList();
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to fetch products: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Request purchase (expo-iap compatible)
+  Future<void> requestPurchase({
+    required iap_types.RequestPurchase request,
+    required iap_types.PurchaseType type,
+  }) async {
+    if (!_isInitialized) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_INITIALIZED,
+        message: 'IAP connection not initialized',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      if (_platform.isIOS && request.ios != null) {
+        if (request.ios!.withOffer != null) {
+          await requestProductWithOfferIOS(
+            request.ios!.sku,
+            request.ios!.appAccountToken ?? '',
+            request.ios!.withOffer!,
+          );
+        } else if (request.ios!.quantity != null && request.ios!.quantity! > 1) {
+          await requestPurchaseWithQuantityIOS(
+            request.ios!.sku,
+            request.ios!.quantity!,
+          );
+        } else {
+          if (type == iap_types.PurchaseType.subs) {
+            await requestSubscription(request.ios!.sku);
+          } else {
+            await this._requestPurchaseOld(
+              request.ios!.sku,
+              obfuscatedAccountId: request.ios!.appAccountToken,
+            );
+          }
+        }
+      } else if (_platform.isAndroid && request.android != null) {
+        final sku = request.android!.skus.first;
+        if (type == iap_types.PurchaseType.subs) {
+          await requestSubscription(
+            sku,
+            prorationModeAndroid: request.android!.prorationMode,
+            obfuscatedAccountIdAndroid: request.android!.obfuscatedAccountIdAndroid,
+            obfuscatedProfileIdAndroid: request.android!.obfuscatedProfileIdAndroid,
+            purchaseTokenAndroid: request.android!.purchaseToken,
+            offerTokenIndex: request.android!.offerTokenIndex,
+          );
+        } else {
+          await this._requestPurchaseOld(
+            sku,
+            obfuscatedAccountId: request.android!.obfuscatedAccountIdAndroid,
+            purchaseTokenAndroid: request.android!.purchaseToken,
+            obfuscatedProfileIdAndroid: request.android!.obfuscatedProfileIdAndroid,
+            offerTokenIndex: request.android!.offerTokenIndex,
+          );
+        }
+      }
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to request purchase: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Get available purchases (expo-iap compatible)
+  Future<List<iap_types.Purchase>> getAvailablePurchases() async {
+    if (!_isInitialized) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_INITIALIZED,
+        message: 'IAP connection not initialized',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      final purchases = await getAvailableItemsIOS();
+      return purchases?.map((item) => _convertToPurchase(item)).toList() ?? [];
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to get available purchases: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Get purchase histories (expo-iap compatible)
+  Future<List<iap_types.Purchase>> getPurchaseHistories() async {
+    if (!_isInitialized) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_INITIALIZED,
+        message: 'IAP connection not initialized',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      final history = await getPurchaseHistory();
+      return history?.map((item) => _convertToPurchase(item)).toList() ?? [];
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to get purchase history: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// iOS specific: Get storefront
+  Future<iap_types.AppStoreInfo?> getStorefrontIOS() async {
+    if (!_platform.isIOS) {
+      return null;
+    }
+
+    try {
+      final result = await channel.invokeMethod<Map<dynamic, dynamic>>('getStorefront');
+      if (result != null) {
+        return iap_types.AppStoreInfo(
+          storefrontCountryCode: result['countryCode'] as String?,
+          identifier: result['identifier'] as String?,
+        );
+      }
+      return null;
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to get storefront: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// iOS specific: Present code redemption sheet
+  Future<void> presentCodeRedemptionSheetIOS() async {
+    if (!_platform.isIOS) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_SUPPORTED,
+        message: 'This method is only available on iOS',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      await channel.invokeMethod('presentCodeRedemptionSheet');
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to present code redemption sheet: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// iOS specific: Show manage subscriptions
+  Future<void> showManageSubscriptionsIOS() async {
+    if (!_platform.isIOS) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_SUPPORTED,
+        message: 'This method is only available on iOS',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      await channel.invokeMethod('showManageSubscriptions');
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to show manage subscriptions: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Android specific: Deep link to subscriptions
+  Future<void> deepLinkToSubscriptionsAndroid({
+    required String sku,
+    required String packageName,
+  }) async {
+    if (!_platform.isAndroid) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_SUPPORTED,
+        message: 'This method is only available on Android',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      await manageSubscription(sku, packageName);
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to deep link to subscriptions: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  /// Android specific: Acknowledge purchase (expo-iap compatible)
+  Future<void> acknowledgePurchaseAndroid({required String purchaseToken}) async {
+    if (!_platform.isAndroid) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_NOT_SUPPORTED,
+        message: 'This method is only available on Android',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+
+    try {
+      await _acknowledgePurchaseAndroid(purchaseToken);
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        code: iap_types.ErrorCode.E_SERVICE_ERROR,
+        message: 'Failed to acknowledge purchase: ${e.toString()}',
+        platform: iap_types.getCurrentPlatform(),
+      );
+    }
+  }
+
+  // Helper methods
+  iap_types.BaseProduct _convertToProduct(IAPItem item, iap_types.PurchaseType type) {
+    final platform = iap_types.getCurrentPlatform();
+    
+    if (type == iap_types.PurchaseType.subs) {
+      return iap_types.Subscription(
+        productId: item.productId ?? '',
+        price: item.price ?? '0',
+        currency: item.currency,
+        localizedPrice: item.localizedPrice,
+        title: item.title,
+        description: item.description,
+        platform: platform,
+        subscriptionPeriodAndroid: item.subscriptionPeriodAndroid,
+        subscriptionPeriodUnitIOS: item.subscriptionPeriodUnitIOS,
+        subscriptionPeriodNumberIOS: item.subscriptionPeriodNumberIOS != null ? int.tryParse(item.subscriptionPeriodNumberIOS!) : null,
+      );
+    } else {
+      return iap_types.Product(
+        productId: item.productId ?? '',
+        price: item.price ?? '0',
+        currency: item.currency,
+        localizedPrice: item.localizedPrice,
+        title: item.title,
+        description: item.description,
+        platform: platform,
+      );
+    }
+  }
+
+  iap_types.Purchase _convertToPurchase(PurchasedItem item) {
+    return iap_types.Purchase(
+      productId: item.productId ?? '',
+      transactionId: item.transactionId,
+      transactionReceipt: item.transactionReceipt,
+      purchaseToken: item.purchaseToken,
+      transactionDate: item.transactionDate,
+      platform: iap_types.getCurrentPlatform(),
+      isAcknowledgedAndroid: item.isAcknowledgedAndroid,
+      purchaseStateAndroid: item.purchaseStateAndroid?.toString(),
+      originalTransactionIdentifierIOS: item.originalTransactionIdentifierIOS,
+      originalJson: null,
+    );
+  }
+
+  iap_types.PurchaseError _convertToPurchaseError(PurchaseResult result) {
+    iap_types.ErrorCode code = iap_types.ErrorCode.E_UNKNOWN;
+    
+    // Map error codes
+    switch (result.responseCode) {
+      case 0:
+        code = iap_types.ErrorCode.E_UNKNOWN;
+        break;
+      case 1:
+        code = iap_types.ErrorCode.E_USER_CANCELLED;
+        break;
+      case 2:
+        code = iap_types.ErrorCode.E_SERVICE_ERROR;
+        break;
+      case 3:
+        code = iap_types.ErrorCode.E_BILLING_UNAVAILABLE;
+        break;
+      case 4:
+        code = iap_types.ErrorCode.E_ITEM_UNAVAILABLE;
+        break;
+      case 5:
+        code = iap_types.ErrorCode.E_DEVELOPER_ERROR;
+        break;
+      case 6:
+        code = iap_types.ErrorCode.E_UNKNOWN;
+        break;
+      case 7:
+        code = iap_types.ErrorCode.E_PRODUCT_ALREADY_OWNED;
+        break;
+      case 8:
+        code = iap_types.ErrorCode.E_PURCHASE_NOT_ALLOWED;
+        break;
+    }
+
+    return iap_types.PurchaseError(
+      code: code,
+      message: result.message ?? 'Unknown error',
+      debugMessage: result.debugMessage,
+      platform: iap_types.getCurrentPlatform(),
+    );
+  }
+
+  // Original API methods (with deprecation annotations where needed)
+
   /// Consumes all items on `Android`.
-  ///
-  /// Particularly useful for removing all consumable items.
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future consumeAll() async {
     if (_platform.isAndroid) {
       return await _channel.invokeMethod('consumeAllItems');
@@ -80,9 +492,6 @@ class FlutterInappPurchase {
   }
 
   /// Initializes iap features for both `Android` and `iOS`.
-  ///
-  /// This must be called on `Android` and `iOS` before purchasing.
-  /// On `iOS`, it also checks if the client can make payments.
   Future<String?> initialize() async {
     if (_platform.isAndroid) {
       await _setPurchaseListener();
@@ -106,6 +515,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<bool> manageSubscription(String sku, String packageName) async {
     if (_platform.isAndroid) {
       return (await _channel.invokeMethod<bool?>(
@@ -121,6 +531,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<bool> openPlayStoreSubscriptions() async {
     if (_platform.isAndroid) {
       return (await _channel
@@ -144,9 +555,7 @@ class FlutterInappPurchase {
     return Future.value(Store.none);
   }
 
-  /// Retrieves a list of products from the store on `Android` and `iOS`.
-  ///
-  /// `iOS` also returns subscriptions.
+  /// Retrieves a list of products from the store
   Future<List<IAPItem>> getProducts(List<String> productIds) async {
     if (_platform.isAndroid) {
       dynamic result = await _channel.invokeMethod(
@@ -157,21 +566,26 @@ class FlutterInappPurchase {
       );
       return extractItems(result);
     } else if (_platform.isIOS) {
-      dynamic result = await _channel.invokeMethod(
-        'getItems',
-        <String, dynamic>{
-          'skus': productIds.toList(),
-        },
-      );
-      return extractItems(json.encode(result));
+      print('[flutter_inapp_purchase] Calling native iOS getItems with skus: $productIds');
+      try {
+        dynamic result = await _channel.invokeMethod(
+          'getItems',
+          <String, dynamic>{
+            'skus': productIds.toList(),
+          },
+        );
+        print('[flutter_inapp_purchase] Native iOS returned result: $result');
+        return extractItems(json.encode(result));
+      } catch (e) {
+        print('[flutter_inapp_purchase] Error calling native iOS getItems: $e');
+        rethrow;
+      }
     }
     throw PlatformException(
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Retrieves subscriptions on `Android` and `iOS`.
-  ///
-  /// `iOS` also returns non-subscription products.
+  /// Retrieves subscriptions
   Future<List<IAPItem>> getSubscriptions(List<String> productIds) async {
     if (_platform.isAndroid) {
       dynamic result = await _channel.invokeMethod(
@@ -194,23 +608,20 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Retrieves the user's purchase history on `Android` and `iOS` regardless of consumption status.
-  ///
-  /// Purchase history includes all types of products.
-  /// Identical to [getAvailablePurchases] on `iOS`.
+  /// Retrieves the user's purchase history
   Future<List<PurchasedItem>?> getPurchaseHistory() async {
     if (_platform.isAndroid) {
       final dynamic getInappPurchaseHistory = await _channel.invokeMethod(
         'getPurchaseHistoryByType',
         <String, dynamic>{
-          'type': _TypeInApp.inapp.name, // describeEnum 대신 name 속성 사용
+          'type': _TypeInApp.inapp.name,
         },
       );
 
       final dynamic getSubsPurchaseHistory = await _channel.invokeMethod(
         'getPurchaseHistoryByType',
         <String, dynamic>{
-          'type': _TypeInApp.subs.name, // describeEnum 대신 name 속성 사용
+          'type': _TypeInApp.subs.name,
         },
       );
 
@@ -225,19 +636,15 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Android only, Google Play will show users messaging during grace period
-  /// and account hold once per day and provide them an opportunity to fix their
-  /// payment without leaving the app
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<String?> showInAppMessageAndroid() async {
     if (!_platform.isAndroid) return Future.value("");
     _onInAppMessageController ??= StreamController.broadcast();
     return await _channel.invokeMethod('showInAppMessages');
   }
 
-  /// Get all non-consumed purchases made on `Android` and `iOS`.
-  ///
-  /// This is identical to [getPurchaseHistory] on `iOS`
-  Future<List<PurchasedItem>?> getAvailablePurchases() async {
+  /// Get all non-consumed purchases made
+  Future<List<PurchasedItem>?> getAvailableItemsIOS() async {
     if (_platform.isAndroid) {
       dynamic result1 = await _channel.invokeMethod(
         'getAvailableItemsByType',
@@ -262,14 +669,8 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Request a purchase on `Android` or `iOS`.
-  /// Result will be received in `purchaseUpdated` listener or `purchaseError` listener.
-  ///
-  /// Check [AndroidProrationMode] for valid proration values
-  /// Identical to [requestSubscription] on `iOS`.
-  /// [purchaseTokenAndroid] is used when upgrading subscriptions and sets the old purchase token
-  /// [offerTokenIndex] is now required for billing 5.0, if upgraded from billing 4.0 this will default to 0
-  Future requestPurchase(String productId,
+  /// Request a purchase (old API)
+  Future _requestPurchaseOld(String productId,
       {String? obfuscatedAccountId,
       String? purchaseTokenAndroid,
       String? obfuscatedProfileIdAndroid,
@@ -294,15 +695,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Request a subscription on `Android` or `iOS`.
-  /// Result will be received in `purchaseUpdated` listener or `purchaseError` listener.
-  ///
-  /// **NOTICE** second parameter is required on `Android`.
-  ///
-  /// Check [AndroidProrationMode] for valid proration values
-  /// Identical to [requestPurchase] on `iOS`.
-  /// [purchaseTokenAndroid] is used when upgrading subscriptions and sets the old purchase token
-  /// [offerTokenIndex] is now required for billing 5.0, if upgraded from billing 4.0 this will default to 0
+  /// Request a subscription
   Future requestSubscription(
     String productId, {
     int? prorationModeAndroid,
@@ -330,10 +723,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Add Store Payment (iOS only)
-  /// Indicates that the App Store purchase should continue from the app instead of the App Store.
-  ///
-  /// @returns {Future<String>}
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<String?> getPromotedProductIOS() async {
     if (_platform.isIOS) {
       return await _channel.invokeMethod('getPromotedProduct');
@@ -341,10 +731,7 @@ class FlutterInappPurchase {
     return null;
   }
 
-  /// Add Store Payment (iOS only)
-  /// Indicates that the App Store purchase should continue from the app instead of the App Store.
-  ///
-  /// @returns {Future} will receive result from `purchasePromoted` listener.
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future requestPromotedProductIOS() async {
     if (_platform.isIOS) {
       return await _channel.invokeMethod('requestPromotedProduct');
@@ -353,9 +740,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Buy product with offer
-  ///
-  /// @returns {Future} will receive result from `purchaseUpdated` listener.
+  @Deprecated('Use requestPurchase() with RequestPurchase object. Will be removed in 6.0.0')
   Future requestProductWithOfferIOS(
     String sku,
     String forUser,
@@ -373,9 +758,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Buy product with quantity
-  ///
-  /// @returns {Future} will receive result from `purchaseUpdated` listener.
+  @Deprecated('Use requestPurchase() with RequestPurchase object. Will be removed in 6.0.0')
   Future requestPurchaseWithQuantityIOS(
     String sku,
     int quantity,
@@ -391,9 +774,6 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Get the pending purchases in IOS.
-  ///
-  /// @returns {Future<List<PurchasedItem>>}
   Future<List<PurchasedItem>?> getPendingTransactionsIOS() async {
     if (_platform.isIOS) {
       dynamic result = await _channel.invokeMethod(
@@ -405,10 +785,8 @@ class FlutterInappPurchase {
     return [];
   }
 
-  /// Acknowledge a purchase on `Android`.
-  ///
-  /// No effect on `iOS`, whose iap purchases are consumed at the time of purchase.
-  Future<String?> acknowledgePurchaseAndroid(String token) async {
+  @Deprecated('Use finishTransaction() instead. Will be removed in 6.0.0')
+  Future<String?> _acknowledgePurchaseAndroid(String token) async {
     if (_platform.isAndroid) {
       return await _channel
           .invokeMethod('acknowledgePurchase', <String, dynamic>{
@@ -421,18 +799,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Consumes a purchase on `Android`.
-  ///
-  /// No effect on `iOS`, whose consumable purchases are consumed at the time of purchase.
-  ///
-  /// if you already invoked [getProducts],you ought to invoked this method to confirm you have consumed.
-  /// that means you can purchase one IAPItem more times, otherwise you'll receive error code : 7
-  ///
-  /// in DoobooUtils.java error like this:
-  /// case BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED:
-  ///        errorData[0] = E_ALREADY_OWNED;
-  ///        errorData[1] = "You already own this item.";
-  ///        break;
+  @Deprecated('Use finishTransaction() instead. Will be removed in 6.0.0')
   Future<String?> consumePurchaseAndroid(String token) async {
     if (_platform.isAndroid) {
       return await _channel.invokeMethod('consumeProduct', <String, dynamic>{
@@ -445,9 +812,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// End Play Store connection on `Android` and remove iap observer in `iOS`.
-  ///
-  /// Absolutely necessary to call this when done with the payment.
+  /// End connection
   Future<String?> finalize() async {
     if (_platform.isAndroid) {
       final String? result = await _channel.invokeMethod('endConnection');
@@ -462,12 +827,8 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Finish a transaction on `iOS`.
-  ///
-  /// Call this after finalizing server-side validation of the reciept.
-  ///
-  /// No effect on `Android`, who does not allow this type of functionality.
-  Future<String?> finishTransactionIOS(String transactionId) async {
+  @Deprecated('Use finishTransaction() instead. Will be removed in 6.0.0')
+  Future<String?> _finishTransactionIOSOld(String transactionId) async {
     if (_platform.isAndroid) {
       return 'no ops in android';
     } else if (_platform.isIOS) {
@@ -479,11 +840,22 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Finish a transaction on both `android` and `iOS`.
-  ///
-  /// Call this after finalizing server-side validation of the reciept.
-  Future<String?> finishTransaction(PurchasedItem purchasedItem,
-      {bool isConsumable = false}) async {
+  /// Finish a transaction (expo-iap compatible)
+  Future<String?> finishTransaction(iap_types.Purchase purchase, {bool isConsumable = false}) async {
+    final purchasedItem = PurchasedItem.fromJSON({
+      'productId': purchase.productId,
+      'transactionId': purchase.transactionId,
+      'transactionReceipt': purchase.transactionReceipt,
+      'purchaseToken': purchase.purchaseToken,
+      'transactionDate': purchase.transactionDate?.millisecondsSinceEpoch,
+      'isAcknowledgedAndroid': purchase.isAcknowledgedAndroid,
+    });
+
+    return await finishTransactionIOS(purchasedItem, isConsumable: isConsumable);
+  }
+
+  /// Finish a transaction
+  Future<String?> finishTransactionIOS(PurchasedItem purchasedItem, {bool isConsumable = false}) async {
     if (_platform.isAndroid) {
       if (isConsumable) {
         return await _channel.invokeMethod('consumeProduct', <String, dynamic>{
@@ -508,9 +880,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Clear all remaining transaction on `iOS`.
-  ///
-  /// No effect on `Android`, who does not allow this type of functionality.
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<String?> clearTransactionIOS() async {
     if (_platform.isAndroid) {
       return 'no-ops in android.';
@@ -521,8 +891,6 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Retrieves a list of products that have been attempted to purchase through the App Store `iOS` only.
-  ///
   Future<List<IAPItem>> getAppStoreInitiatedProducts() async {
     if (_platform.isAndroid) {
       return <IAPItem>[];
@@ -536,11 +904,7 @@ class FlutterInappPurchase {
         code: _platform.operatingSystem, message: "platform not supported");
   }
 
-  /// Check if a subscription is active on `Android` and `iOS`.
-  ///
-  /// This is a quick and dirty way to check if a subscription is active.
-  /// It is highly recommended to do server-side validation for all subscriptions.
-  /// This method is NOT secure and untested in production.
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<bool> checkSubscribed({
     required String sku,
     Duration duration = const Duration(days: 30),
@@ -562,7 +926,7 @@ class FlutterInappPurchase {
 
       return false;
     } else if (_platform.isAndroid) {
-      var purchases = await (getAvailablePurchases());
+      var purchases = await (getAvailableItemsIOS());
 
       for (var purchase in purchases ?? []) {
         if (purchase.productId == sku) return true;
@@ -575,16 +939,6 @@ class FlutterInappPurchase {
   }
 
   /// Validate receipt in ios
-  ///
-  /// Example:
-  /// ```
-  /// const receiptBody = {
-  /// 'receipt-data': purchased.transactionReceipt,
-  /// 'password': '******'
-  /// };
-  /// const result = await validateReceiptIos(receiptBody, false);
-  /// console.log(result);
-  /// ```
   Future<http.Response> validateReceiptIos({
     required Map<String, String> receiptBody,
     bool isTest = true,
@@ -603,21 +957,6 @@ class FlutterInappPurchase {
   }
 
   /// Validate receipt in android
-  ///
-  /// For Android, you need separate json file from the service account to get the access_token from google-apis, therefore it is impossible to implement serverless. You should have your own backend and get access_token.
-  /// Read: https://stackoverflow.com/questions/35127086/android-inapp-purchase-receipt-validation-google-play?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-  ///
-  /// Example:
-  /// ```
-  /// const result = await validateReceiptAndroid(
-  ///   packageName: 'com.dooboolab.iap',
-  ///   productId: 'product_1',
-  ///   productToken: 'some_token_string',
-  ///   accessToken: 'play_console_access_token',
-  ///   isSubscription: false,
-  /// );
-  /// console.log(result);
-  /// ```
   Future<http.Response> validateReceiptAndroid({
     required String packageName,
     required String productId,
@@ -644,24 +983,30 @@ class FlutterInappPurchase {
 
     _channel.setMethodCallHandler((MethodCall call) {
       switch (call.method) {
-        case "purchase-updated":
-          Map<String, dynamic> result = jsonDecode(call.arguments);
-          _purchaseController!.add(PurchasedItem.fromJSON(result));
+        case 'purchase-updated':
+          Map<String, dynamic> result = jsonDecode(call.arguments as String) as Map<String, dynamic>;
+          PurchasedItem item = PurchasedItem.fromJSON(result);
+          _purchaseController!.add(item);
+          // Also emit to expo-iap compatible stream
+          _purchaseUpdatedController.add(_convertToPurchase(item));
           break;
-        case "purchase-error":
-          Map<String, dynamic> result = jsonDecode(call.arguments);
-          _purchaseErrorController!.add(PurchaseResult.fromJSON(result));
+        case 'purchase-error':
+          Map<String, dynamic> result = jsonDecode(call.arguments as String) as Map<String, dynamic>;
+          PurchaseResult purchaseResult = PurchaseResult.fromJSON(result);
+          _purchaseErrorController!.add(purchaseResult);
+          // Also emit to expo-iap compatible stream
+          _expoIAPPurchaseErrorController.add(_convertToPurchaseError(purchaseResult));
           break;
-        case "connection-updated":
-          Map<String, dynamic> result = jsonDecode(call.arguments);
+        case 'connection-updated':
+          Map<String, dynamic> result = jsonDecode(call.arguments as String) as Map<String, dynamic>;
           _connectionController!.add(ConnectionResult.fromJSON(result));
           break;
-        case "iap-promoted-product":
-          String? productId = call.arguments;
+        case 'iap-promoted-product':
+          String? productId = call.arguments as String?;
           _purchasePromotedController!.add(productId);
           break;
-        case "on-in-app-message":
-          final int code = call.arguments;
+        case 'on-in-app-message':
+          final int code = call.arguments as int;
           _onInAppMessageController?.add(code);
           break;
         default:
@@ -683,38 +1028,167 @@ class FlutterInappPurchase {
     _purchaseErrorController = null;
   }
 
+  @Deprecated('Not available in expo-iap. Will be removed in 6.0.0')
   Future<String> showPromoCodesIOS() async {
     if (_platform.isIOS) {
-      return await _channel.invokeMethod('showRedeemCodesIOS');
+      return await _channel.invokeMethod<String>('showRedeemCodesIOS') ?? '';
     }
     throw PlatformException(
         code: _platform.operatingSystem, message: "platform not supported");
   }
+  
+  // expo-iap compatible methods
+  
+  /// expo-iap compatible method to get products
+  Future<List<iap_types.Product>> getProductsAsync(List<String> productIds) async {
+    final items = await getProducts(productIds);
+    return items.map((item) => iap_types.Product(
+      platform: _platform.isIOS ? iap_types.IAPPlatform.ios : iap_types.IAPPlatform.android,
+      productId: item.productId ?? '',
+      title: item.title ?? '',
+      description: item.description ?? '',
+      price: item.price ?? '0',
+      currency: item.currency ?? 'USD',
+    )).toList();
+  }
+  
+  /// expo-iap compatible method to get available purchases
+  Future<List<iap_types.Purchase>> getAvailablePurchasesAsync() async {
+    final items = await getAvailableItemsIOS();
+    return items?.map(_convertToPurchase).toList() ?? [];
+  }
+  
+  /// expo-iap compatible purchase method
+  Future<void> purchaseAsync(String productId) async {
+    try {
+      if (_platform.isIOS) {
+        await _channel.invokeMethod('buyProduct', productId);
+      } else if (_platform.isAndroid) {
+        await _requestPurchaseOld(productId);
+      }
+    } catch (e) {
+      throw iap_types.PurchaseError(
+        platform: _platform.isIOS ? iap_types.IAPPlatform.ios : iap_types.IAPPlatform.android,
+        code: iap_types.ErrorCode.E_UNKNOWN,
+        message: e.toString(),
+      );
+    }
+  }
+  
+  /// expo-iap compatible finish transaction method
+  Future<void> finishTransactionAsync({
+    required String transactionId,
+    required bool consume,
+  }) async {
+    if (_platform.isIOS) {
+      await _channel.invokeMethod('finishTransaction', transactionId);
+    } else if (_platform.isAndroid) {
+      // For Android, the transactionId is actually the purchaseToken
+      if (consume) {
+        await _channel.invokeMethod('consumePurchase', <String, dynamic>{
+          'token': transactionId,
+        });
+      } else {
+        await _channel.invokeMethod('acknowledgePurchase', <String, dynamic>{
+          'token': transactionId,
+        });
+      }
+    }
+  }
+
+  // MARK: - StoreKit 2 specific methods
+
+  /// Restore completed transactions (StoreKit 2)
+  Future<void> restorePurchases() async {
+    if (_platform.isIOS) {
+      await _channel.invokeMethod('restorePurchases');
+    } else if (_platform.isAndroid) {
+      // Android handles this automatically when querying purchases
+      await getAvailableItemsIOS();
+    }
+  }
+
+  /// Present offer code redemption sheet (iOS 16+)
+  Future<void> presentCodeRedemptionSheet() async {
+    if (_platform.isIOS) {
+      await _channel.invokeMethod('presentCodeRedemptionSheet');
+    } else {
+      throw PlatformException(
+        code: 'UNSUPPORTED',
+        message: 'Code redemption sheet is only available on iOS',
+      );
+    }
+  }
+
+  /// Show manage subscriptions screen (iOS 15+)
+  Future<void> showManageSubscriptions() async {
+    if (_platform.isIOS) {
+      await _channel.invokeMethod('showManageSubscriptions');
+    } else if (_platform.isAndroid) {
+      // For Android, you would open the Play Store subscriptions page
+      throw PlatformException(
+        code: 'NOT_IMPLEMENTED',
+        message: 'Manage subscriptions not implemented for Android',
+      );
+    }
+  }
+
+  /// Clear transaction cache
+  Future<void> clearTransactionCache() async {
+    await _channel.invokeMethod('clearTransactionCache');
+  }
+
+  /// Get promoted product (App Store promoted purchase)
+  Future<String?> getPromotedProduct() async {
+    if (_platform.isIOS) {
+      return await _channel.invokeMethod('getPromotedProduct');
+    }
+    return null;
+  }
+
+  /// Get the app transaction (iOS 16.0+)
+  /// Returns app-level transaction information including device verification
+  Future<Map<String, dynamic>?> getAppTransaction() async {
+    if (_platform.isIOS) {
+      try {
+        final result = await _channel.invokeMethod('getAppTransaction');
+        if (result != null) {
+          return Map<String, dynamic>.from(result);
+        }
+        return null;
+      } catch (e) {
+        debugPrint('getAppTransaction error: $e');
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// Get the app transaction as typed object (iOS 16.0+)
+  /// Returns app-level transaction information including device verification
+  Future<iap_types.AppTransaction?> getAppTransactionTyped() async {
+    final result = await getAppTransaction();
+    if (result != null) {
+      try {
+        return iap_types.AppTransaction.fromJson(result);
+      } catch (e) {
+        debugPrint('getAppTransactionTyped parsing error: $e');
+        return null;
+      }
+    }
+    return null;
+  }
 }
 
-/// A list of valid values for ProrationMode parameter
-/// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode
+/// Android Proration Mode
 class AndroidProrationMode {
-  /// Replacement takes effect immediately, and the user is charged full price of new plan and is given a full billing cycle of subscription, plus remaining prorated time from the old plan.
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#IMMEDIATE_AND_CHARGE_FULL_PRICE
   static const int IMMEDIATE_AND_CHARGE_FULL_PRICE = 5;
-
-  /// Replacement takes effect when the old plan expires, and the new price will be charged at the same time.
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#DEFERRED
   static const int DEFERRED = 4;
-
-  /// Replacement takes effect immediately, and the billing cycle remains the same. The price for the remaining period will be charged. This option is only available for subscription upgrade.
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#immediate_and_charge_prorated_price
   static const int IMMEDIATE_AND_CHARGE_PRORATED_PRICE = 2;
-
-  /// Replacement takes effect immediately, and the new price will be charged on next recurrence time. The billing cycle stays the same.
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#immediate_without_proration
   static const int IMMEDIATE_WITHOUT_PRORATION = 3;
-
-  /// Replacement takes effect immediately, and the remaining time will be prorated and credited to the user. This is the current default behavior.
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#immediate_with_time_proration
   static const int IMMEDIATE_WITH_TIME_PRORATION = 1;
-
-  /// https://developer.android.com/reference/com/android/billingclient/api/BillingFlowParams.ProrationMode#unknown_subscription_upgrade_downgrade_policy
   static const int UNKNOWN_SUBSCRIPTION_UPGRADE_DOWNGRADE_POLICY = 0;
 }
+
+// Global instance (expo-iap compatible)
+final expoIAP = FlutterInappPurchase.instance;
