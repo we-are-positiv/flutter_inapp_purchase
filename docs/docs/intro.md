@@ -1,84 +1,132 @@
 ---
+title: flutter_inapp_purchase
+sidebar_label: Introduction
 sidebar_position: 1
 ---
 
-# Flutter In-App Purchase
+# 🛒 flutter_inapp_purchase
 
-A Flutter plugin for in-app purchases on iOS and Android, providing a unified API for handling purchases across both platforms.
+A comprehensive Flutter plugin for implementing in-app purchases on iOS and Android platforms.
 
-## Features
+<div style={{textAlign: 'center', margin: '2rem 0'}}>
+  <img src="/img/hero.png" alt="flutter_inapp_purchase Hero" style={{maxWidth: '100%', height: 'auto'}} />
+</div>
 
-- 🔄 **Cross-platform Support**: Works seamlessly on both iOS and Android
-- 🎯 **Simple API**: Easy-to-use methods for product management and purchases
-- 🛡️ **Error Handling**: Comprehensive error handling with platform-specific error codes
-- 🎣 **Stream-based**: Real-time purchase updates via streams
-- 📱 **Flutter Compatible**: Built specifically for Flutter with null safety support
-- 🔍 **Receipt Validation**: Built-in receipt validation helpers
-- 💎 **Products & Subscriptions**: Support for both one-time purchases and subscriptions
+## 🚀 What is flutter_inapp_purchase?
 
-## Quick Start
+This is an **In App Purchase** plugin for Flutter. This project has been **forked** from [react-native-iap](https://github.com/hyochan/react-native-iap). We are trying to share same experience of **in-app-purchase** in **flutter** as in **react-native**.
 
-### Installation
+We will keep working on it as time goes by just like we did in **react-native-iap**.
+
+## ✨ Key Features
+
+- **Cross-platform**: Works seamlessly on both iOS and Android
+- **StoreKit 2 Support**: Full StoreKit 2 support for iOS 15.0+ with automatic fallback
+- **Billing Client v8**: Latest Android Billing Client features
+- **Type-safe**: Complete TypeScript-like support with Dart strong typing
+- **Comprehensive Error Handling**: Detailed error codes and user-friendly messages
+- **Subscription Management**: Advanced subscription handling and validation
+- **Receipt Validation**: Built-in receipt validation for both platforms
+
+## 🎯 What this plugin does
+
+- **Product Management**: Fetch and manage consumable and non-consumable products
+- **Purchase Flow**: Handle complete purchase workflows with proper error handling
+- **Subscription Support**: Full subscription lifecycle management
+- **Receipt Validation**: Validate purchases on both platforms
+- **Store Communication**: Direct communication with App Store and Google Play
+- **Error Recovery**: Comprehensive error handling and recovery mechanisms
+
+## 🛠️ Platform Support
+
+| Feature                  | iOS | Android |
+| ------------------------ | --- | ------- |
+| Products & Subscriptions | ✅  | ✅      |
+| Purchase Flow            | ✅  | ✅      |
+| Receipt Validation       | ✅  | ✅      |
+| Subscription Management  | ✅  | ✅      |
+| Promotional Offers       | ✅  | N/A     |
+| StoreKit 2               | ✅  | N/A     |
+| Billing Client v8        | N/A | ✅      |
+
+## 🔄 Version Information
+
+- **Current Version**: 6.0.0-rc.1
+- **Flutter Compatibility**: Flutter 3.x+
+- **iOS Requirements**: iOS 11.0+
+- **Android Requirements**: API level 21+
+
+## ⚡ Quick Start
+
+Get started with flutter_inapp_purchase in minutes:
 
 ```bash
-flutter pub add flutter_inapp_purchase
+flutter pub add flutter_inapp_purchase:^6.0.0-rc.1
 ```
-
-### Basic Usage
 
 ```dart
 import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 
 // Initialize connection
-await FlutterInappPurchase.instance.initialize();
+await FlutterInappPurchase.instance.initConnection();
 
-// Get products (consumables and non-consumables)
-List<IAPItem> products = await FlutterInappPurchase.instance.requestProducts(
-  skus: ['com.example.product1', 'com.example.product2'],
-  type: 'inapp',
-);
-
-// Get subscriptions
-List<IAPItem> subscriptions = await FlutterInappPurchase.instance.requestProducts(
-  skus: ['com.example.premium_monthly'],
-  type: 'subs',
-);
+// Get products
+final products = await FlutterInappPurchase.instance.getProducts(['product_id']);
 
 // Request purchase
-await FlutterInappPurchase.instance.requestPurchase('com.example.product1');
-
-// Listen to purchase updates
-FlutterInappPurchase.purchaseUpdatedStream.listen((item) {
-  // Handle purchase update
-});
+await FlutterInappPurchase.instance.requestPurchase(
+  RequestPurchase(
+    ios: RequestPurchaseIosProps(sku: 'product_id'),
+    android: RequestPurchaseAndroidProps(skus: ['product_id']),
+  ),
+  PurchaseType.inapp,
+);
 ```
 
-## Platform Setup
+## 📚 What's Next?
 
-### iOS Setup
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8">
+  <div className="card">
+    <div className="card-body">
+      <h3>🏁 Getting Started</h3>
+      <p>Learn how to install and configure flutter_inapp_purchase in your project.</p>
+      <a href="/docs/getting-started/installation" className="button button--primary">Get Started →</a>
+    </div>
+  </div>
+  
+  <div className="card">
+    <div className="card-body">
+      <h3>📖 Guides</h3>
+      <p>Follow step-by-step guides for implementing purchases and subscriptions.</p>
+      <a href="/docs/guides/purchases" className="button button--secondary">View Guides →</a>
+    </div>
+  </div>
+  
+  <div className="card">
+    <div className="card-body">
+      <h3>🔧 API Reference</h3>
+      <p>Comprehensive API documentation with examples and type definitions.</p>
+      <a href="/docs/api/" className="button button--secondary">API Docs →</a>
+    </div>
+  </div>
+  
+  <div className="card">
+    <div className="card-body">
+      <h3>💡 Examples</h3>
+      <p>Real-world examples and implementation patterns.</p>
+      <a href="/docs/examples/basic-store" className="button button--secondary">See Examples →</a>
+    </div>
+  </div>
+</div>
 
-1. Configure your products in App Store Connect
-2. Add In-App Purchase capability to your Xcode project
-3. Update your `Info.plist` if needed
+## 🤝 Community & Support
 
-### Android Setup
+This project is maintained by [hyochan](https://github.com/hyochan).
 
-1. Configure your products in Google Play Console
-2. Add billing permission to your `AndroidManifest.xml`:
+- **GitHub Issues**: [Report bugs and feature requests](https://github.com/hyochan/flutter_inapp_purchase/issues)
+- **Discussions**: [Join community discussions](https://github.com/hyochan/flutter_inapp_purchase/discussions)
+- **Contributing**: [Contribute to the project](https://github.com/hyochan/flutter_inapp_purchase/blob/main/CONTRIBUTING.md)
 
-```xml
-<uses-permission android:name="com.android.vending.BILLING" />
-```
+---
 
-## What's Next?
-
-- [Installation Guide](./getting-started/installation) - Detailed installation instructions
-- [iOS Setup](./getting-started/setup-ios) - Complete iOS configuration guide
-- [Android Setup](./getting-started/setup-android) - Complete Android configuration guide
-- [Quick Start](./getting-started/quickstart) - Get up and running quickly
-
-## Support
-
-- [GitHub Issues](https://github.com/hyochan/flutter_inapp_purchase/issues)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/flutter-inapp-purchase)
-- [Discord Community](https://discord.gg/hyo)
+Ready to implement in-app purchases in your Flutter app? Let's [get started](/docs/getting-started/installation)! 🚀
