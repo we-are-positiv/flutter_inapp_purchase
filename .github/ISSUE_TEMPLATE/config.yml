@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Check Example Project First
+    url: https://github.com/hyochan/flutter_inapp_purchase/tree/main/example
+    about: MANDATORY - Check the example project before submitting an issue!
+  - name: 📖 Read Documentation
+    url: https://github.com/hyochan/flutter_inapp_purchase#readme
+    about: Please read the README and documentation first
+  - name: 💬 Discussions
+    url: https://github.com/hyochan/flutter_inapp_purchase/discussions
+    about: For general questions and discussions, please use GitHub Discussions
