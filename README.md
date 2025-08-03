@@ -1,11 +1,19 @@
 # flutter_inapp_purchase
 
-[![Pub Version](https://img.shields.io/pub/v/flutter_inapp_purchase.svg?style=flat-square)](https://pub.dartlang.org/packages/flutter_inapp_purchase)
-[![Flutter CI](https://github.com/hyochan/flutter_inapp_purchase/actions/workflows/ci.yml/badge.svg)](https://github.com/hyochan/flutter_inapp_purchase/actions/workflows/ci.yml)
-[![Coverage Status](https://codecov.io/gh/hyochan/flutter_inapp_purchase/branch/main/graph/badge.svg?token=WXBlKvRB2G)](https://codecov.io/gh/hyochan/flutter_inapp_purchase)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+<p align="center">
+  <img src="https://flutter-inapp-purchase.hyo.dev/img/logo.png" width="200" alt="flutter_inapp_purchase logo" />
+</p>
 
-A comprehensive Flutter plugin for implementing in-app purchases on iOS and Android platforms.
+<p align="center">
+  <a href="https://pub.dartlang.org/packages/flutter_inapp_purchase"><img src="https://img.shields.io/pub/v/flutter_inapp_purchase.svg?style=flat-square" alt="Pub Version" /></a>
+  <a href="https://github.com/hyochan/flutter_inapp_purchase/actions/workflows/ci.yml"><img src="https://github.com/hyochan/flutter_inapp_purchase/actions/workflows/ci.yml/badge.svg" alt="Flutter CI" /></a>
+  <a href="https://codecov.io/gh/hyochan/flutter_inapp_purchase"><img src="https://codecov.io/gh/hyochan/flutter_inapp_purchase/branch/main/graph/badge.svg?token=WXBlKvRB2G" alt="Coverage Status" /></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
+</p>
+
+<p align="center">
+  A comprehensive Flutter plugin for implementing in-app purchases on iOS and Android platforms.
+</p>
 
 ## 📚 Documentation
 
