@@ -75,12 +75,12 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/hero.png',
+    image: 'img/logo.png',
     navbar: {
       title: 'flutter_inapp_purchase',
       logo: {
         alt: 'flutter_inapp_purchase Logo',
-        src: 'img/logo.svg',
+        src: 'img/logo.png',
       },
       items: [
         {

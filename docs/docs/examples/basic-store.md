@@ -780,7 +780,7 @@ void _setLoading(bool loading, [String? message]) {
 
 ## Next Steps
 
-- **Learn Subscriptions**: Check out the [Subscription Manager Example](./subscriptions.md)
+- **Learn Subscriptions**: Check out the [Subscription Store Example](./subscription-store.md)
 - **Advanced Features**: See the [Complete Implementation](./complete-implementation.md)
 - **Error Handling**: Read the [Error Codes Reference](../api/error-codes.md)
 - **Platform Setup**: Review [iOS Setup](../getting-started/ios-setup.md) and [Android Setup](../getting-started/android-setup.md)

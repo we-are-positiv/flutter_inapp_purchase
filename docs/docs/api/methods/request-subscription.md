@@ -239,7 +239,7 @@ await _iap.requestPurchase(
 
 ## Related Methods
 
-- [`getSubscriptions()`](./get-subscriptions.md) - Fetch subscription products
+- `getSubscriptions()` - Fetch subscription products (deprecated - use `getProducts()` instead)
 - [`requestPurchase()`](./request-purchase.md) - Modern purchase method
 - [`getAvailablePurchases()`](./get-available-purchases.md) - Check active subscriptions
 

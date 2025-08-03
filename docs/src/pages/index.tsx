@@ -36,8 +36,8 @@ function HomepageHeader() {
           </div>
           <div className={styles.heroImage}>
             <img
-              src="/img/hero.png"
-              alt="flutter_inapp_purchase Hero"
+              src="/img/logo.png"
+              alt="flutter_inapp_purchase Logo"
               className={styles.heroImg}
             />
           </div>

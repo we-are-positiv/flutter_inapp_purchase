@@ -313,9 +313,9 @@ class PurchaseManager {
 
 ## Related Methods
 
-- [`getPurchaseHistory()`](./get-purchase-history.md) - Gets historical purchases
+- `getPurchaseHistory()` - Gets historical purchases (Android only)
 - [`finishTransaction()`](./finish-transaction.md) - Completes transactions
-- [`restorePurchases()`](./restore-purchases.md) - iOS-specific restore method
+- `restorePurchases()` - iOS-specific restore method
 
 ## Platform Notes
 

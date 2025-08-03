@@ -355,4 +355,3 @@ class PurchaseStateManager {
 
 - [Error Codes](./error-codes.md) - Error states and codes
 - [Product Types](./product-type.md) - Product-related types
-- [Platform Types](./platform-types.md) - Platform-specific types

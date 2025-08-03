@@ -448,4 +448,4 @@ class PurchaseValidator {
 
 - [`getAvailablePurchases()`](./get-available-purchases.md) - Get purchases to validate
 - [`finishTransaction()`](./finish-transaction.md) - Complete validated purchases
-- [`getPurchaseHistory()`](./get-purchase-history.md) - Get historical receipts
+- `getPurchaseHistory()` - Get historical receipts (Android only)

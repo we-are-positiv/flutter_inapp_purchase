@@ -4,22 +4,22 @@ sidebar_label: Introduction
 sidebar_position: 1
 ---
 
+import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
+
 # 🛒 flutter_inapp_purchase
+
+<AdFitTopFixed />
 
 A comprehensive Flutter plugin for implementing in-app purchases on iOS and Android platforms.
 
 <div style={{textAlign: 'center', margin: '2rem 0'}}>
-  <img src="/img/hero.png" alt="flutter_inapp_purchase Hero" style={{maxWidth: '100%', height: 'auto'}} />
+  <img src="/img/logo.png" alt="flutter_inapp_purchase Logo" style={{maxWidth: '100%', height: 'auto'}} />
 </div>
 
 ## 🚀 What is flutter_inapp_purchase?
 
-<<<<<<< HEAD
-This is an **In App Purchase** plugin for Flutter. This project has been **forked** from [react-native-iap](https://github.com/dooboolab/react-native-iap). We are trying to share same experience of **in-app-purchase** in **flutter** as in **react-native**.
-=======
 This is an **In App Purchase** plugin for Flutter. This project has been **forked** from [react-native-iap](https://github.com/hyochan/react-native-iap). We are trying to share same experience of **in-app-purchase** in **flutter** as in **react-native**.
 
->>>>>>> b194c41 (docs: Fix homepage navigation links with correct /docs prefix)
 We will keep working on it as time goes by just like we did in **react-native-iap**.
 
 ## ✨ Key Features
@@ -133,8 +133,4 @@ This project is maintained by [hyochan](https://github.com/hyochan).
 
 ---
 
-<<<<<<< HEAD
-Ready to implement in-app purchases in your Flutter app? Let's [get started](/getting-started/installation)! 🚀
-=======
 Ready to implement in-app purchases in your Flutter app? Let's [get started](/docs/getting-started/installation)! 🚀
->>>>>>> b194c41 (docs: Fix homepage navigation links with correct /docs prefix)

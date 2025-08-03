@@ -284,8 +284,8 @@ void handleTransactionState(PurchasedItem item) {
 
 - [`requestPurchase()`](./request-purchase.md) - Initiates a purchase
 - [`getAvailablePurchases()`](./get-available-purchases.md) - Gets unfinished purchases
-- [`acknowledgePurchaseAndroid()`](./acknowledge-purchase-android.md) - Android-specific acknowledgment
-- [`consumePurchaseAndroid()`](./consume-purchase-android.md) - Android-specific consumption
+- `acknowledgePurchaseAndroid()` - Android-specific acknowledgment (see example above)
+- `consumePurchaseAndroid()` - Android-specific consumption (see example above)
 
 ## Important Notes
 

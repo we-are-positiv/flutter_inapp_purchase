@@ -141,7 +141,7 @@ class IAPProvider extends ChangeNotifier {
 
 ## Related Methods
 
-- [`endConnection()`](./end-connection.md) - Closes the connection to the billing service
+- `finalize()` - Closes the connection to the billing service
 - [`getProducts()`](./get-products.md) - Fetches available products (requires initialized connection)
 - [`requestPurchase()`](./request-purchase.md) - Initiates a purchase (requires initialized connection)
 

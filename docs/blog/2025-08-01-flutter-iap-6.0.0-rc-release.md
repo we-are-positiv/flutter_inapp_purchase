@@ -1,17 +1,19 @@
 ---
-slug: flutter-iap-6.0.0-release
-title: 🎉 flutter_inapp_purchase 6.0.0 Release - StoreKit 2 & Billing Client v8 Support
+slug: flutter-iap-6.0.0-rc-release
+title: 🎉 flutter_inapp_purchase 6.0.0-rc.1 Release Candidate - StoreKit 2 & Billing Client v8 Support
 authors: [hyochan]
 tags: [release, storekit2, billing-client-v8, flutter, in-app-purchase]
 ---
 
-# 🚀 flutter_inapp_purchase 6.0.0 Major Release
+# 🚀 flutter_inapp_purchase 6.0.0-rc.1 Release Candidate
 
-We're excited to announce the release of **flutter_inapp_purchase 6.0.0**, a major update that brings modern platform support and significant improvements to the Flutter ecosystem!
+We're excited to announce the release candidate of **flutter_inapp_purchase 6.0.0-rc.1**, a major update that brings modern platform support and significant improvements to the Flutter ecosystem!
 
-![flutter_inapp_purchase 6.0.0 Release](/img/hero.png)
+> ⚠️ **Note**: This is a Release Candidate version. While feature-complete and tested, it may still contain bugs. Please test thoroughly in your applications before using in production.
 
-## ✨ What's New in 6.0.0
+![flutter_inapp_purchase 6.0.0 Release](/img/logo.png)
+
+## ✨ What's New in 6.0.0-rc.1
 
 ### 🍎 iOS StoreKit 2 Support
 
@@ -130,11 +132,33 @@ Looking ahead to future releases:
 - **Testing Utilities**: Better testing and mocking support
 - **Performance Optimizations**: Continued performance improvements
 
-## 📥 Upgrade Today
+## 📥 How to Try the Release Candidate
+
+To test the release candidate in your project:
+
+```yaml
+dependencies:
+  flutter_inapp_purchase: ^6.0.0-rc.1
+```
+
+Or use the command:
 
 ```bash
-flutter pub upgrade flutter_inapp_purchase
+flutter pub add flutter_inapp_purchase:^6.0.0-rc.1
 ```
+
+## 🔍 What We Need From You
+
+As this is a release candidate, we need your help to ensure a stable final release:
+
+1. **Test in your apps**: Try the RC in development and staging environments
+2. **Report issues**: Found a bug? [Report it on GitHub](https://github.com/hyochan/flutter_inapp_purchase/issues)
+3. **Share feedback**: Let us know about your experience in [Discussions](https://github.com/hyochan/flutter_inapp_purchase/discussions)
+
+## 📅 Release Timeline
+
+- **RC Period**: August 2025 - September 2025
+- **Final Release**: Expected September 2025 (pending feedback)
 
 Don't forget to check our [Migration Guide](/docs/migration/from-v5) for a smooth upgrade experience!
 
@@ -142,4 +166,6 @@ Don't forget to check our [Migration Guide](/docs/migration/from-v5) for a smoot
 
 Questions? Join our [GitHub Discussions](https://github.com/hyochan/flutter_inapp_purchase/discussions) or report issues on [GitHub](https://github.com/hyochan/flutter_inapp_purchase/issues).
 
-Happy coding! 🎉
+Happy testing! 🧪
+
+> **Remember**: This is a release candidate. Use in production at your own discretion after thorough testing.
