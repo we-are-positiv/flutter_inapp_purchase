@@ -3,12 +3,11 @@ sidebar_position: 3
 title: Purchases
 ---
 
-import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
-
+<<<<<<< HEAD
+=======
 # Purchases
 
-<AdFitTopFixed />
-
+>>>>>>> 40157f9 (docs: Update guides and examples content)
 Complete guide to implementing in-app purchases with flutter_inapp_purchase v6.0.0, covering everything from basic setup to advanced purchase handling.
 
 ## Purchase Flow Overview
@@ -402,6 +401,18 @@ Future<void> handleSubscriptionProduct(PurchasedItem purchase) async {
   // Activate subscription for user
   await activateSubscription(purchase.productId);
   
+<<<<<<< HEAD
+  Future<bool> isSubscriptionActive(String productId) async {
+    if (Platform.isIOS) {
+      // Check receipt for active subscription
+      final purchases = await _iap.getAvailableItemsIOS();
+      return purchases?.any((p) => p.productId == productId) ?? false;
+    } else {
+      // Android: Check purchase state and expiry
+      // Implementation depends on your backend
+      return false;
+    }
+=======
   // For Android - acknowledge the subscription
   if (Platform.isAndroid && purchase.purchaseToken != null) {
     await FlutterInappPurchase.instance.acknowledgePurchaseAndroid(
@@ -416,6 +427,7 @@ Future<void> handleSubscriptionProduct(PurchasedItem purchase) async {
       isConsumable: false,
     );
   }
+>>>>>>> 40157f9 (docs: Update guides and examples content)
 }
 ```
 
@@ -537,6 +549,17 @@ Future<bool> validatePurchaseReceipt(PurchasedItem purchase) async {
         isSubscription: false,
       );
       
+<<<<<<< HEAD
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['valid'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Purchase verification failed: $e');
+      return false;
+    }
+=======
       return result != null;
     }
     
@@ -544,6 +567,7 @@ Future<bool> validatePurchaseReceipt(PurchasedItem purchase) async {
   } catch (e) {
     debugPrint('Receipt validation failed: $e');
     return false;
+>>>>>>> 40157f9 (docs: Update guides and examples content)
   }
 }
 ```
@@ -553,6 +577,112 @@ Future<bool> validatePurchaseReceipt(PurchasedItem purchase) async {
 ### Common Purchase Errors
 
 ```dart
+<<<<<<< HEAD
+class PurchaseErrorHandler {
+  void handlePurchaseError(PurchaseResult? error) {
+    if (error == null) return;
+    
+    print('Purchase error: ${error.code} - ${error.message}');
+    
+    // Map error codes to user-friendly messages
+    String userMessage;
+    bool isRecoverable = false;
+    
+    switch (error.code) {
+      case ErrorCode.eUserCancelled:
+        userMessage = 'Purchase cancelled';
+        isRecoverable = false;
+        break;
+        
+      case ErrorCode.eNetworkError:
+        userMessage = 'Network error. Please check your connection and try again.';
+        isRecoverable = true;
+        break;
+        
+      case ErrorCode.eItemUnavailable:
+        userMessage = 'This item is currently unavailable.';
+        isRecoverable = false;
+        break;
+        
+      case ErrorCode.eAlreadyOwned:
+        userMessage = 'You already own this item. Try restoring purchases.';
+        isRecoverable = false;
+        _suggestRestore();
+        break;
+        
+      case ErrorCode.eServiceDisconnected:
+        userMessage = 'Store service disconnected. Please restart the app.';
+        isRecoverable = true;
+        break;
+        
+      case ErrorCode.eDeveloperError:
+        userMessage = 'Configuration error. Please contact support.';
+        isRecoverable = false;
+        _logDeveloperError(error);
+        break;
+        
+      case ErrorCode.eServiceUnavailable:
+        userMessage = 'Store service is temporarily unavailable.';
+        isRecoverable = true;
+        break;
+        
+      case ErrorCode.eBillingUnavailable:
+        userMessage = 'Billing is not available on this device.';
+        isRecoverable = false;
+        break;
+        
+      case ErrorCode.eServiceTimeout:
+        userMessage = 'Request timed out. Please try again.';
+        isRecoverable = true;
+        break;
+        
+      case ErrorCode.eFeatureNotSupported:
+        userMessage = 'This feature is not supported on your device.';
+        isRecoverable = false;
+        break;
+        
+      default:
+        userMessage = 'Purchase failed. Please try again later.';
+        isRecoverable = true;
+    }
+    
+    _showErrorDialog(
+      title: 'Purchase Error',
+      message: userMessage,
+      isRecoverable: isRecoverable,
+      onRetry: isRecoverable ? () => _retryLastPurchase() : null,
+    );
+  }
+  
+  void _showErrorDialog({
+    required String title,
+    required String message,
+    required bool isRecoverable,
+    VoidCallback? onRetry,
+  }) {
+    // Show error dialog to user
+    showDialog(
+      context: _context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+          if (isRecoverable && onRetry != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onRetry();
+              },
+              child: Text('Retry'),
+            ),
+        ],
+      ),
+    );
+=======
 void handlePurchaseError(PurchaseResult error) {
   switch (error.responseCode) {
     case 1: // User cancelled
@@ -582,6 +712,7 @@ void handlePurchaseError(PurchaseResult error) {
       break;
     default:
       debugPrint('Unknown error: ${error.message}');
+>>>>>>> 40157f9 (docs: Update guides and examples content)
   }
 }
 ```
@@ -649,6 +780,54 @@ class PurchaseService {
       },
     );
 
+<<<<<<< HEAD
+## Next Steps
+
+### 1. Implement Receipt Validation
+
+Always validate purchases server-side for security:
+- See [Receipt Validation Guide](./receipt-validation.md)
+- Set up server endpoints for iOS and Android
+- Implement retry logic for failed validations
+
+### 2. Handle Subscriptions
+
+For subscription products:
+- See [Subscriptions Guide](./subscriptions.md)
+- Implement subscription status checking
+- Handle upgrades/downgrades
+- Manage trial periods
+
+### 3. Analytics and Monitoring
+
+Track purchase metrics:
+```dart
+class PurchaseAnalytics {
+  static void trackPurchaseEvent(String event, Map<String, dynamic> params) {
+    // Log to your analytics service
+    analytics.logEvent(event, parameters: {
+      ...params,
+      'platform': Platform.operatingSystem,
+      'app_version': packageInfo.version,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+  
+  static void trackPurchaseSuccess(PurchasedItem purchase) {
+    trackPurchaseEvent('purchase_success', {
+      'product_id': purchase.productId,
+      'transaction_id': purchase.transactionId,
+      'price': purchase.priceAmountMicros ?? 0 / 1000000,
+      'currency': purchase.priceCurrencyCode,
+    });
+  }
+  
+  static void trackPurchaseFailure(String productId, String error) {
+    trackPurchaseEvent('purchase_failure', {
+      'product_id': productId,
+      'error': error,
+    });
+=======
     _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen(
       (purchaseError) {
         if (purchaseError != null) {
@@ -692,8 +871,57 @@ class PurchaseService {
   void dispose() {
     _purchaseUpdatedSubscription?.cancel();
     _purchaseErrorSubscription?.cancel();
+>>>>>>> 40157f9 (docs: Update guides and examples content)
   }
 }
 ```
 
+<<<<<<< HEAD
+### 4. Production Checklist
+
+Before going live:
+- [ ] Server-side receipt validation implemented
+- [ ] Error handling covers all scenarios
+- [ ] Restore purchases functionality tested
+- [ ] Analytics tracking in place
+- [ ] Test accounts removed from production
+- [ ] Products configured in both stores
+- [ ] Privacy policy includes purchase data handling
+- [ ] Refund policy clearly stated
+
+### 5. Common Pitfalls to Avoid
+
+1. **Not finishing transactions**: Always call `finishTransaction`
+2. **No receipt validation**: Vulnerable to fraud
+3. **Poor error handling**: Users get stuck
+4. **Not handling pending purchases**: Lost revenue
+5. **Hardcoded product IDs**: Use configuration
+6. **No restore functionality**: Users lose purchases
+7. **Testing in production**: Use sandbox/test accounts
+
+## Additional Resources
+
+### Example Implementation
+
+For a complete working example, check the [example app](https://github.com/hyochan/flutter_inapp_purchase/tree/main/example) in the repository.
+
+### API Reference
+
+- [FlutterInappPurchase API](../api/flutter-inapp-purchase.md)
+- [RequestPurchase API](../api/request-purchase.md)
+- [IAPItem Model](../api/iap-item.md)
+- [PurchasedItem Model](../api/purchased-item.md)
+
+### Platform Documentation
+
+- [Apple StoreKit Documentation](https://developer.apple.com/documentation/storekit)
+- [Google Play Billing Documentation](https://developer.android.com/google/play/billing)
+
+### Community Support
+
+- [GitHub Issues](https://github.com/hyochan/flutter_inapp_purchase/issues)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/flutter-inapp-purchase)
+- [Flutter Community](https://flutter.dev/community)
+=======
 This guide covers the complete purchase flow using the actual flutter_inapp_purchase v6.0.0 API, with examples based on the working code from your project.
+>>>>>>> 40157f9 (docs: Update guides and examples content)

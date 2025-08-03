@@ -6,8 +6,8 @@
 pubspec.lock
 
 build/
+.claude/
 
-# dooboolab
 .idea/
 flutter_inapp.iml
 flutter_inapp_android.iml
