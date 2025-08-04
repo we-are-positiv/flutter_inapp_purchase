@@ -232,6 +232,6 @@ try {
 
 ## Next Steps
 
-- [Quick Start](./quickstart) - Implement your first purchase
-- [Purchase Implementation](../guides/purchases) - Detailed purchase flow
-- [Testing Guide](../guides/testing) - Comprehensive testing strategies
+- [Learn about iOS setup](./setup-ios)
+- [Explore getting started guide](./quickstart)
+- [Understand error codes](../api/error-codes)

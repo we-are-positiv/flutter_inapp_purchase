@@ -82,9 +82,15 @@ class SubscriptionManager {
 ```dart
 Future<void> purchaseSubscription(String subscriptionId) async {
   try {
-    await FlutterInappPurchase.instance.requestSubscription(
-      subscriptionId,
-      obfuscatedAccountIdAndroid: await _getUserId(),
+    await FlutterInappPurchase.instance.requestPurchase(
+      request: RequestPurchase(
+        ios: RequestPurchaseIOS(sku: subscriptionId),
+        android: RequestPurchaseAndroid(
+          skus: [subscriptionId],
+          obfuscatedAccountIdAndroid: await _getUserId(),
+        ),
+      ),
+      type: PurchaseType.subs,
     );
     
     // Result will be delivered via purchaseUpdated stream
@@ -109,18 +115,30 @@ Future<void> purchaseSubscriptionAdvanced({
       // Android subscription upgrade/downgrade
       final currentToken = await _getCurrentSubscriptionToken(upgradeFromId);
       
-      await FlutterInappPurchase.instance.requestSubscription(
-        subscriptionId,
-        purchaseTokenAndroid: currentToken,
-        prorationModeAndroid: prorationMode ?? 
-            AndroidProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE,
-        obfuscatedAccountIdAndroid: await _getUserId(),
+      await FlutterInappPurchase.instance.requestPurchase(
+        request: RequestPurchase(
+          ios: RequestPurchaseIOS(sku: subscriptionId),
+          android: RequestPurchaseAndroid(
+            skus: [subscriptionId],
+            purchaseTokenAndroid: currentToken,
+            replacementModeAndroid: prorationMode ?? 
+                AndroidProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE,
+            obfuscatedAccountIdAndroid: await _getUserId(),
+          ),
+        ),
+        type: PurchaseType.subs,
       );
     } else {
       // New subscription or iOS
-      await FlutterInappPurchase.instance.requestSubscription(
-        subscriptionId,
-        obfuscatedAccountIdAndroid: await _getUserId(),
+      await FlutterInappPurchase.instance.requestPurchase(
+        request: RequestPurchase(
+          ios: RequestPurchaseIOS(sku: subscriptionId),
+          android: RequestPurchaseAndroid(
+            skus: [subscriptionId],
+            obfuscatedAccountIdAndroid: await _getUserId(),
+          ),
+        ),
+        type: PurchaseType.subs,
       );
     }
   } catch (e) {
@@ -192,17 +210,29 @@ class SubscriptionChangeHandler {
         final currentToken = await _getCurrentSubscriptionToken(fromProductId);
         
         if (currentToken != null) {
-          await FlutterInappPurchase.instance.requestSubscription(
-            toProductId,
-            purchaseTokenAndroid: currentToken,
-            prorationModeAndroid: AndroidProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE,
+          await FlutterInappPurchase.instance.requestPurchase(
+            request: RequestPurchase(
+              ios: RequestPurchaseIOS(sku: toProductId),
+              android: RequestPurchaseAndroid(
+                skus: [toProductId],
+                purchaseTokenAndroid: currentToken,
+                replacementModeAndroid: AndroidProrationMode.IMMEDIATE_AND_CHARGE_PRORATED_PRICE,
+              ),
+            ),
+            type: PurchaseType.subs,
           );
         } else {
           throw Exception('Current subscription not found');
         }
       } else {
         // iOS handles this automatically through subscription groups
-        await FlutterInappPurchase.instance.requestSubscription(toProductId);
+        await FlutterInappPurchase.instance.requestPurchase(
+          request: RequestPurchase(
+            ios: RequestPurchaseIOS(sku: toProductId),
+            android: RequestPurchaseAndroid(skus: [toProductId]),
+          ),
+          type: PurchaseType.subs,
+        );
       }
     } catch (e) {
       print('Subscription upgrade failed: $e');
@@ -484,7 +514,13 @@ class IOSSubscriptionHandler {
   Future<void> handleSubscriptionGroup(String newSubscriptionId) async {
     // iOS automatically manages subscription groups
     // Users can only have one active subscription per group
-    await FlutterInappPurchase.instance.requestSubscription(newSubscriptionId);
+    await FlutterInappPurchase.instance.requestPurchase(
+      request: RequestPurchase(
+        ios: RequestPurchaseIOS(sku: newSubscriptionId),
+        android: RequestPurchaseAndroid(skus: [newSubscriptionId]),
+      ),
+      type: PurchaseType.subs,
+    );
   }
   
   // Handle promotional offers
@@ -524,9 +560,15 @@ class AndroidSubscriptionHandler {
     required String subscriptionId,
     required int offerIndex,
   }) async {
-    await FlutterInappPurchase.instance.requestSubscription(
-      subscriptionId,
-      offerTokenIndex: offerIndex,
+    await FlutterInappPurchase.instance.requestPurchase(
+      request: RequestPurchase(
+        ios: RequestPurchaseIOS(sku: subscriptionId),
+        android: RequestPurchaseAndroid(
+          skus: [subscriptionId],
+          subscriptionOffers: [{offerToken: offerIndex.toString()}],
+        ),
+      ),
+      type: PurchaseType.subs,
     );
   }
   
@@ -539,10 +581,16 @@ class AndroidSubscriptionHandler {
     final oldToken = await _getCurrentSubscriptionToken(oldSubscriptionId);
     
     if (oldToken != null) {
-      await FlutterInappPurchase.instance.requestSubscription(
-        newSubscriptionId,
-        purchaseTokenAndroid: oldToken,
-        prorationModeAndroid: prorationMode,
+      await FlutterInappPurchase.instance.requestPurchase(
+        request: RequestPurchase(
+          ios: RequestPurchaseIOS(sku: newSubscriptionId),
+          android: RequestPurchaseAndroid(
+            skus: [newSubscriptionId],
+            purchaseTokenAndroid: oldToken,
+            replacementModeAndroid: prorationMode,
+          ),
+        ),
+        type: PurchaseType.subs,
       );
     }
   }

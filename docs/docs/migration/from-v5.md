@@ -26,6 +26,7 @@ Version 6.0.0 is a **major release** with breaking changes to support modern pla
 The most significant breaking change is the error code enum format.
 
 **v5.x (Old):**
+
 ```dart
 // SCREAMING_SNAKE_CASE format
 ErrorCode.E_USER_CANCELLED
@@ -36,6 +37,7 @@ ErrorCode.E_DEVELOPER_ERROR
 ```
 
 **v6.0 (New):**
+
 ```dart
 // lowerCamelCase format
 ErrorCode.eUserCancelled
@@ -46,12 +48,14 @@ ErrorCode.eDeveloperError
 ```
 
 **Before (v5.x):**
+
 ```dart
 Future<List<IAPItem>> getProducts(List<String> skus) async
 Future<String> requestPurchase(String sku) async
 ```
 
 **After (v6.x):**
+
 ```dart
 Future<List<IAPItem>> getProducts(List<String> skus) async
 Future<void> requestPurchase(String sku) async
@@ -75,12 +79,14 @@ await FlutterInappPurchase.instance.requestPurchase(sku);
 Purchase streams have been renamed for clarity:
 
 **Before:**
+
 ```dart
 FlutterInappPurchase.connectionUpdated.listen(...);
 FlutterInappPurchase.iapUpdated.listen(...);
 ```
 
 **After:**
+
 ```dart
 FlutterInappPurchase.purchaseUpdated.listen(...);
 FlutterInappPurchase.purchaseError.listen(...);
@@ -98,6 +104,7 @@ dependencies:
 ```
 
 Run:
+
 ```bash
 flutter pub get
 ```
@@ -113,23 +120,25 @@ dart migrate
 ### Step 3: Update Initialization
 
 **Before:**
+
 ```dart
 Future<void> initPlatformState() async {
-  String platformVersion;
   try {
-    platformVersion = await FlutterInappPurchase.instance.initialize();
-  } on PlatformException {
-    platformVersion = 'Failed to get platform version.';
+    await FlutterInappPurchase.instance.initConnection();
+    print('IAP connection initialized');
+  } on PlatformException catch (e) {
+    print('Failed to initialize connection: $e');
   }
 }
 ```
 
 **After:**
+
 ```dart
 Future<void> initPlatformState() async {
   try {
-    String? result = await FlutterInappPurchase.instance.initialize();
-    print('IAP initialized: $result');
+    await FlutterInappPurchase.instance.initConnection();
+    print('IAP connection initialized');
   } catch (e) {
     print('Failed to initialize IAP: $e');
   }
@@ -139,6 +148,7 @@ Future<void> initPlatformState() async {
 ### Step 4: Update Stream Listeners
 
 **Before:**
+
 ```dart
 _purchaseUpdatedSubscription = FlutterInappPurchase.iapUpdated.listen((data) {
   print('purchase-updated: $data');
@@ -150,6 +160,7 @@ _purchaseErrorSubscription = FlutterInappPurchase.iapUpdated.listen((data) {
 ```
 
 **After:**
+
 ```dart
 _purchaseUpdatedSubscription = FlutterInappPurchase.purchaseUpdated.listen((productItem) {
   if (productItem != null) {
@@ -167,6 +178,7 @@ _purchaseErrorSubscription = FlutterInappPurchase.purchaseError.listen((productI
 ### Step 5: Update Purchase Methods
 
 **Before:**
+
 ```dart
 try {
   String msg = await FlutterInappPurchase.instance.requestPurchase(item.productId);
@@ -177,6 +189,7 @@ try {
 ```
 
 **After:**
+
 ```dart
 try {
   await FlutterInappPurchase.instance.requestPurchase(item.productId!);
@@ -189,6 +202,7 @@ try {
 ### Step 6: Update Data Model Access
 
 **Before:**
+
 ```dart
 // Accessing properties without null checks
 String productId = item.productId;
@@ -196,6 +210,7 @@ String price = item.localizedPrice;
 ```
 
 **After:**
+
 ```dart
 // Null-safe property access
 String? productId = item.productId;
@@ -208,6 +223,7 @@ String displayPrice = item.localizedPrice ?? 'N/A';
 ### Step 7: Update Transaction Completion
 
 **Before:**
+
 ```dart
 try {
   String msg = await FlutterInappPurchase.instance.finishTransaction(item);
@@ -217,6 +233,7 @@ try {
 ```
 
 **After:**
+
 ```dart
 try {
   String? result = await FlutterInappPurchase.instance.finishTransaction(item);
@@ -246,7 +263,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initPlatformState() async {
-    await FlutterInappPurchase.instance.initialize();
+    await FlutterInappPurchase.instance.initConnection();
 
     _purchaseUpdatedSubscription = FlutterInappPurchase.iapUpdated.listen((data) {
       print('purchase-updated: $data');
@@ -292,8 +309,8 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> initPlatformState() async {
     try {
-      String? result = await FlutterInappPurchase.instance.initialize();
-      print('IAP initialized: $result');
+      await FlutterInappPurchase.instance.initConnection();
+      print('IAP connection initialized');
     } catch (e) {
       print('Failed to initialize: $e');
     }
@@ -355,7 +372,6 @@ class _MyAppState extends State<MyApp> {
   }
 }
 ```
-
 
 ## Testing Your Migration
 

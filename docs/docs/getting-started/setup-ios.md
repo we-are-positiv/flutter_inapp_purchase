@@ -161,6 +161,6 @@ validateReceipt(receiptBody);
 
 ## Next Steps
 
-- [Android Setup](./setup-android) - Configure Google Play Console
-- [Quick Start](./quickstart) - Implement your first purchase
-- [Testing Guide](../guides/testing) - Comprehensive testing strategies
+- [Learn about Android setup](./setup-android)
+- [Explore getting started guide](./quickstart)
+- [Understand error codes](../api/error-codes)

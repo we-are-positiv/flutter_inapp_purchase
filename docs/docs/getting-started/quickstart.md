@@ -42,7 +42,7 @@ class _SimpleStoreState extends State<SimpleStore> {
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    initIAP();
   }
 
   @override
@@ -53,10 +53,10 @@ class _SimpleStoreState extends State<SimpleStore> {
   }
 
   // Initialize the plugin
-  Future<void> initPlatformState() async {
+  Future<void> initIAP() async {
     // Initialize connection
-    var result = await FlutterInappPurchase.instance.initialize();
-    print('IAP initialized: $result');
+    await FlutterInappPurchase.instance.initConnection();
+    print('IAP connection initialized');
     
     // Set up purchase listeners
     _purchaseUpdatedSubscription = 
@@ -147,7 +147,13 @@ class _SimpleStoreState extends State<SimpleStore> {
   // Request a purchase
   Future<void> _requestPurchase(String productId) async {
     try {
-      await FlutterInappPurchase.instance.requestPurchase(productId);
+      await FlutterInappPurchase.instance.requestPurchase(
+        request: RequestPurchase(
+          ios: RequestPurchaseIOS(sku: productId),
+          android: RequestPurchaseAndroid(skus: [productId]),
+        ),
+        type: PurchaseType.inapp,
+      );
     } catch (e) {
       _showError('Purchase failed: $e');
     }
@@ -156,7 +162,13 @@ class _SimpleStoreState extends State<SimpleStore> {
   // Request a subscription
   Future<void> _requestSubscription(String productId) async {
     try {
-      await FlutterInappPurchase.instance.requestSubscription(productId);
+      await FlutterInappPurchase.instance.requestPurchase(
+        request: RequestPurchase(
+          ios: RequestPurchaseIOS(sku: productId),
+          android: RequestPurchaseAndroid(skus: [productId]),
+        ),
+        type: PurchaseType.subs,
+      );
     } catch (e) {
       _showError('Subscription failed: $e');
     }
@@ -280,10 +292,10 @@ class _SimpleStoreState extends State<SimpleStore> {
 
 ### 1. Initialization
 
-Always initialize the plugin before using any other methods:
+Always initialize the connection before using any other methods:
 
 ```dart
-await FlutterInappPurchase.instance.initialize();
+await FlutterInappPurchase.instance.initConnection();
 ```
 
 ### 2. Loading Products
@@ -316,6 +328,15 @@ FlutterInappPurchase.purchaseUpdated.listen((productItem) {
 FlutterInappPurchase.purchaseError.listen((error) {
   // Handle error
 });
+
+// Request a purchase
+await FlutterInappPurchase.instance.requestPurchase(
+  request: RequestPurchase(
+    ios: RequestPurchaseIOS(sku: 'product_id'),
+    android: RequestPurchaseAndroid(skus: ['product_id']),
+  ),
+  type: PurchaseType.inapp, // or PurchaseType.subs for subscriptions
+);
 ```
 
 ### 4. Platform Differences

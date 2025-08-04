@@ -351,11 +351,9 @@ FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
 
 ## Next Steps
 
-Once Android setup is complete:
-
-1. **[Basic Implementation](/docs/guides/basic-setup)** - Start implementing purchases
-2. **[Testing Guide](/docs/guides/testing)** - Test your implementation thoroughly
-3. **[Security Best Practices](/docs/guides/security)** - Secure your implementation
+- [Learn about iOS setup](./ios-setup)
+- [Explore getting started guide](./quickstart)
+- [Understand error codes](../api/error-codes)
 
 ---
 

@@ -331,11 +331,9 @@ await FlutterInappPurchase.instance.requestPurchase(
 
 ## Next Steps
 
-Once iOS setup is complete:
-
-1. **[Basic Implementation](/docs/guides/basic-setup)** - Start implementing purchases
-2. **[Testing Guide](/docs/guides/testing)** - Test your implementation thoroughly
-3. **[App Store Guidelines](/docs/guides/app-store-guidelines)** - Ensure compliance
+- [Learn about Android setup](./android-setup)
+- [Explore getting started guide](./quickstart)
+- [Understand error codes](../api/error-codes)
 
 ---
 
