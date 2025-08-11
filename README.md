@@ -25,7 +25,7 @@ For comprehensive documentation, installation guides, API reference, and example
 
 ```yaml
 dependencies:
-  flutter_inapp_purchase: ^6.0.0-rc.1
+  flutter_inapp_purchase: ^6.0.0-rc.3
 ```
 
 ## 🔧 Quick Start
