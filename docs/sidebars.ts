@@ -49,6 +49,11 @@ const sidebars: SidebarsConfig = {
         'examples/complete-implementation',
       ],
     },
+    {
+      type: 'doc',
+      id: 'sponsors',
+      label: 'Sponsors',
+    },
   ],
 };
 

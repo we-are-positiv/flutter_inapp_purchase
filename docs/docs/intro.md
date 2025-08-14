@@ -10,7 +10,7 @@ import AdFitTopFixed from "@site/src/uis/AdFitTopFixed";
 
 <AdFitTopFixed />
 
-A comprehensive Flutter plugin for implementing in-app purchases on iOS and Android platforms.
+A comprehensive Flutter plugin for implementing in-app purchases that **conforms to the [Open IAP specification](https://openiap.dev)**.
 
 <div style={{textAlign: 'center', margin: '2rem 0'}}>
   <img src="/img/logo.png" alt="flutter_inapp_purchase Logo" style={{maxWidth: '100%', height: 'auto'}} />

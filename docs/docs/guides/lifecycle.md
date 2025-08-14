@@ -5,13 +5,19 @@ title: Lifecycle
 
 # Lifecycle
 
-Understanding and managing the in-app purchase lifecycle is crucial for creating robust and reliable purchase experiences.
+For complete understanding of the in-app purchase lifecycle, flow diagrams, and state management, please visit:
 
-![Purchase Lifecycle](https://expo-iap.hyo.dev/assets/images/lifecycle-882aa01ea00089e05a08f19581d9b349.svg)
+👉 **[Lifecycle Documentation - openiap.dev](https://openiap.dev/docs/lifecycle)**
 
-The purchase lifecycle involves multiple interconnected states and transitions, from initial store connection through purchase completion and transaction finalization. Understanding this flow helps you build resilient purchase systems that handle edge cases gracefully.
+![Purchase Flow](https://openiap.dev/purchase-flow.png)
 
-While this diagram is from expo-iap, flutter_inapp_purchase follows the exact same design patterns and flow, making this lifecycle representation identical for both libraries.
+The Open IAP specification provides detailed documentation on:
+
+- Complete purchase flow
+- State transitions and management
+- Connection lifecycle
+- Error recovery patterns
+- Platform-specific considerations
 
 ## Lifecycle Overview
 
@@ -48,7 +54,7 @@ class IapProviderWidget extends StatefulWidget {
 
 class _IapProviderWidgetState extends State<IapProviderWidget> {
   final FlutterInappPurchase _iap = FlutterInappPurchase.instance;
-  
+
   bool _connected = false;
   bool _loading = false;
   String? _error;
@@ -70,10 +76,10 @@ class _IapProviderWidgetState extends State<IapProviderWidget> {
 
     try {
       await _iap.initConnection();
-      
+
       // Set up purchase listeners
       _setupPurchaseListeners();
-      
+
       setState(() {
         _connected = true;
         _loading = false;
@@ -121,13 +127,13 @@ enum ConnectionState {
 class ConnectionManager {
   ConnectionState _state = ConnectionState.disconnected;
   String? _errorMessage;
-  
+
   ConnectionState get state => _state;
   String? get errorMessage => _errorMessage;
-  
+
   Future<void> connect() async {
     _setState(ConnectionState.connecting);
-    
+
     try {
       await FlutterInappPurchase.instance.initConnection();
       _setState(ConnectionState.connected);
@@ -135,7 +141,7 @@ class ConnectionManager {
       _setState(ConnectionState.error, e.toString());
     }
   }
-  
+
   void _setState(ConnectionState newState, [String? error]) {
     _state = newState;
     _errorMessage = error;
@@ -144,7 +150,6 @@ class ConnectionManager {
   }
 }
 ```
-
 
 ## Component Lifecycle Integration
 
@@ -158,20 +163,20 @@ class PurchaseScreen extends StatefulWidget {
   _PurchaseScreenState createState() => _PurchaseScreenState();
 }
 
-class _PurchaseScreenState extends State<PurchaseScreen> 
+class _PurchaseScreenState extends State<PurchaseScreen>
     with WidgetsBindingObserver {
-  
+
   StreamSubscription<PurchasedItem?>? _purchaseSubscription;
   StreamSubscription<PurchaseResult?>? _errorSubscription;
   bool _isProcessing = false;
-  
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setupPurchaseListeners();
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -179,7 +184,7 @@ class _PurchaseScreenState extends State<PurchaseScreen>
     _errorSubscription?.cancel();
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -199,7 +204,7 @@ class _PurchaseScreenState extends State<PurchaseScreen>
         break;
     }
   }
-  
+
   void _setupPurchaseListeners() {
     _purchaseSubscription = FlutterInappPurchase.purchaseUpdated.listen(
       (purchase) {
@@ -209,7 +214,7 @@ class _PurchaseScreenState extends State<PurchaseScreen>
         }
       },
     );
-    
+
     _errorSubscription = FlutterInappPurchase.purchaseError.listen(
       (error) {
         if (error != null && mounted) {
@@ -231,7 +236,7 @@ Using hooks or similar patterns for functional components:
 class IapHook {
   late StreamSubscription<PurchasedItem?>? _purchaseSubscription;
   late StreamSubscription<PurchaseResult?>? _errorSubscription;
-  
+
   void initialize(
     Function(PurchasedItem) onPurchase,
     Function(PurchaseResult) onError,
@@ -243,7 +248,7 @@ class IapHook {
         }
       },
     );
-    
+
     _errorSubscription = FlutterInappPurchase.purchaseError.listen(
       (error) {
         if (error != null) {
@@ -252,7 +257,7 @@ class IapHook {
       },
     );
   }
-  
+
   void dispose() {
     _purchaseSubscription?.cancel();
     _errorSubscription?.cancel();
@@ -283,14 +288,14 @@ class GoodPurchaseManager extends WidgetsBindingObserver {
     _setupListeners();
     _ensureConnection();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkPendingTransactions();
     }
   }
-  
+
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _cleanup();
@@ -342,7 +347,7 @@ class SecurePurchaseValidator {
           },
           isTest: false, // Set based on environment
         );
-        
+
         return result != null && result['status'] == 0;
       } else if (Platform.isAndroid) {
         // Android purchase validation
@@ -353,10 +358,10 @@ class SecurePurchaseValidator {
           accessToken: 'your-access-token',
           isSubscription: false,
         );
-        
+
         return result != null;
       }
-      
+
       return false;
     } catch (e) {
       debugPrint('Validation failed: $e');
@@ -385,23 +390,23 @@ class PurchaseStateManager {
   PurchaseState _state = PurchaseState.idle;
   String? _currentProductId;
   String? _errorMessage;
-  
+
   PurchaseState get state => _state;
   String? get currentProductId => _currentProductId;
   String? get errorMessage => _errorMessage;
-  
+
   Future<void> initiatePurchase(String productId) async {
     _updateState(PurchaseState.loading, productId);
-    
+
     try {
       // Check connection
       final connected = await _ensureConnection();
       if (!connected) {
         throw Exception('Store connection failed');
       }
-      
+
       _updateState(PurchaseState.processing, productId);
-      
+
       await FlutterInappPurchase.instance.requestPurchase(
         request: RequestPurchase(
           ios: RequestPurchaseIOS(sku: productId),
@@ -409,12 +414,12 @@ class PurchaseStateManager {
         ),
         type: PurchaseType.inapp,
       );
-      
+
     } catch (e) {
       _updateState(PurchaseState.error, productId, e.toString());
     }
   }
-  
+
   void _updateState(PurchaseState newState, [String? productId, String? error]) {
     _state = newState;
     _currentProductId = productId;
@@ -433,7 +438,7 @@ class PurchaseErrorHandler {
   static void handlePurchaseError(PurchaseResult error, BuildContext context) {
     String userMessage;
     bool shouldRetry = false;
-    
+
     switch (error.responseCode) {
       case 1: // User cancelled
         userMessage = 'Purchase was cancelled';
@@ -458,10 +463,10 @@ class PurchaseErrorHandler {
       default:
         userMessage = 'Purchase failed: ${error.message ?? 'Unknown error'}';
     }
-    
+
     _showErrorDialog(context, userMessage, shouldRetry);
   }
-  
+
   static void _showErrorDialog(BuildContext context, String message, bool showRetry) {
     showDialog(
       context: context,
@@ -495,10 +500,10 @@ class PurchaseErrorHandler {
 ```dart
 class DevelopmentHelpers {
   static bool get isDebugMode => kDebugMode;
-  
+
   static Future<void> setupTestEnvironment() async {
     if (!isDebugMode) return;
-    
+
     // Clear any existing transactions in debug mode
     try {
       await FlutterInappPurchase.instance.clearTransactionCache();
@@ -507,10 +512,10 @@ class DevelopmentHelpers {
       debugPrint('Failed to clear transaction cache: $e');
     }
   }
-  
+
   static void logPurchaseState(String state, [Map<String, dynamic>? data]) {
     if (!isDebugMode) return;
-    
+
     debugPrint('Purchase State: $state');
     if (data != null) {
       data.forEach((key, value) {
@@ -526,6 +531,7 @@ class DevelopmentHelpers {
 ### Transaction Management Issues
 
 **Problem**: Purchases getting stuck in pending state
+
 ```dart
 // Solution: Implement proper transaction cleanup
 class TransactionCleanup {
@@ -533,10 +539,10 @@ class TransactionCleanup {
     try {
       // Restore purchases to get all pending transactions
       await FlutterInappPurchase.instance.restorePurchases();
-      
+
       // Get available purchases
       final purchases = await FlutterInappPurchase.instance.getAvailablePurchases();
-      
+
       // Process each pending purchase
       for (final purchase in purchases) {
         await _finalizePurchase(purchase);
@@ -545,14 +551,14 @@ class TransactionCleanup {
       debugPrint('Error cleaning up transactions: $e');
     }
   }
-  
+
   static Future<void> _finalizePurchase(PurchasedItem purchase) async {
     // Validate and deliver content first
     final isValid = await _validatePurchase(purchase);
     if (!isValid) return;
-    
+
     await _deliverContent(purchase);
-    
+
     // Then finalize the transaction
     if (Platform.isAndroid) {
       await FlutterInappPurchase.instance.consumePurchaseAndroid(
@@ -571,6 +577,7 @@ class TransactionCleanup {
 ### Security Issues
 
 **Problem**: Client-side only validation
+
 ```dart
 // Solution: Always validate server-side
 class SecurityBestPractices {
@@ -579,14 +586,14 @@ class SecurityBestPractices {
     if (purchase.productId == null || purchase.transactionReceipt == null) {
       return false;
     }
-    
+
     // 2. Server-side validation (critical)
     final serverValid = await _validateWithServer(purchase);
     if (!serverValid) return false;
-    
+
     // 3. Business logic validation
     final businessValid = await _validateBusinessRules(purchase);
-    
+
     return businessValid;
   }
 }
@@ -595,23 +602,24 @@ class SecurityBestPractices {
 ### Development and Testing Issues
 
 **Problem**: Different behavior in sandbox vs production
+
 ```dart
 // Solution: Environment-aware configuration
 class EnvironmentConfig {
   static bool get isProduction => !kDebugMode && _isProductionBuild();
   static bool get isSandbox => kDebugMode || _isSandboxBuild();
-  
-  static String get validationEndpoint => isProduction 
+
+  static String get validationEndpoint => isProduction
     ? 'https://buy.itunes.apple.com/verifyReceipt'
     : 'https://sandbox.itunes.apple.com/verifyReceipt';
-    
+
   static bool _isProductionBuild() {
     // Add your production detection logic
     return false;
   }
-  
+
   static bool _isSandboxBuild() {
-    // Add your sandbox detection logic  
+    // Add your sandbox detection logic
     return true;
   }
 }
@@ -620,11 +628,12 @@ class EnvironmentConfig {
 ### App Lifecycle Issues
 
 **Problem**: Purchases interrupted by app backgrounding
+
 ```dart
 // Solution: Implement proper app lifecycle handling
 class LifecycleAwarePurchaseManager extends WidgetsBindingObserver {
   Map<String, PurchaseState> _pendingPurchases = {};
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -638,12 +647,12 @@ class LifecycleAwarePurchaseManager extends WidgetsBindingObserver {
         break;
     }
   }
-  
+
   void _resumePendingPurchases() {
     // Check for any purchases that completed while app was backgrounded
     FlutterInappPurchase.instance.restorePurchases();
   }
-  
+
   void _savePendingPurchases() {
     // Persist pending purchase state
     // This helps recover from app kills during purchase
@@ -654,6 +663,7 @@ class LifecycleAwarePurchaseManager extends WidgetsBindingObserver {
 ### Connection Management Issues
 
 **Problem**: Connection drops during purchase flow
+
 ```dart
 // Solution: Implement connection resilience
 class ResilientConnectionManager {
@@ -664,13 +674,13 @@ class ResilientConnectionManager {
         return true;
       } catch (e) {
         debugPrint('Connection attempt $attempt failed: $e');
-        
+
         if (attempt < 3) {
           await Future.delayed(Duration(seconds: attempt * 2));
         }
       }
     }
-    
+
     return false;
   }
 }
@@ -688,6 +698,7 @@ After implementing proper lifecycle management:
 6. **Consider advanced features** like promotional offers and subscription management
 
 For more detailed guidance on specific purchase flows, see:
+
 - [Purchases Guide](./purchases.md) - Complete purchase implementation
 - [Offer Code Redemption](./offer-code-redemption.md) - Promotional offers
 - [Troubleshooting](./troubleshooting.md) - Common issues and solutions

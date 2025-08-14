@@ -4,236 +4,262 @@ sidebar_label: iOS Setup
 sidebar_position: 2
 ---
 
-# iOS Setup Guide
+# iOS Setup
 
-Complete guide to configure flutter_inapp_purchase for iOS with StoreKit 2 support.
+For complete iOS setup instructions including App Store Connect configuration, Xcode setup, and testing guidelines, please visit:
 
-## Prerequisites
+👉 **[iOS Setup Guide - openiap.dev](https://openiap.dev/docs/ios-setup)**
 
-- **iOS 11.0+** (StoreKit 2 requires iOS 15.0+)
-- **Xcode 14+** for StoreKit 2 development
-- **Apple Developer Account** with valid agreements
-- **Physical device** for production testing
+The guide covers:
+- App Store Connect configuration
+- Xcode project setup
+- Sandbox testing
+- Common troubleshooting steps
 
-## Xcode Configuration
+## Code Implementation
 
-### Enable In-App Purchase Capability
+### Basic Setup
 
-1. Open your project in Xcode
-2. Select your project in the navigator
-3. Select your target under **TARGETS**
-4. Go to **Signing & Capabilities** tab
-5. Click **+ Capability** and add **In-App Purchase**
+```dart
+import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
 
-### Configure Info.plist
+final List<String> iosProductIds = [
+  'com.yourapp.premium_upgrade',
+  'com.yourapp.remove_ads',
+  'com.yourapp.monthly_subscription',
+];
 
-Add the following to your `ios/Runner/Info.plist` for iOS 14+ compatibility:
+class IOSStoreExample extends StatefulWidget {
+  @override
+  _IOSStoreExampleState createState() => _IOSStoreExampleState();
+}
 
-```xml title="ios/Runner/Info.plist"
-<key>LSApplicationQueriesSchemes</key>
-<array>
-    <string>itms-apps</string>
-</array>
+class _IOSStoreExampleState extends State<IOSStoreExample> {
+  late StreamSubscription _purchaseUpdatedSubscription;
+  late StreamSubscription _purchaseErrorSubscription;
+  List<IAPItem> _products = [];
+  bool _isAvailable = false;
 
-<!-- Optional: For subscription management -->
-<key>NSAppTransportSecurity</key>
-<dict>
-    <key>NSAllowsLocalNetworking</key>
-    <true/>
-    <key>NSExceptionDomains</key>
-    <dict>
-        <key>apps.apple.com</key>
-        <dict>
-            <key>NSExceptionRequiresForwardSecrecy</key>
-            <false/>
-            <key>NSIncludesSubdomains</key>
-            <true/>
-        </dict>
-    </dict>
-</dict>
+  @override
+  void initState() {
+    super.initState();
+    initPlatformState();
+  }
+
+  Future<void> initPlatformState() async {
+    // Initialize connection
+    final result = await FlutterInappPurchase.instance.initConnection();
+    print('Connection result: $result');
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAvailable = result;
+    });
+
+    // Listen for purchase updates
+    _purchaseUpdatedSubscription =
+        FlutterInappPurchase.purchaseUpdated.listen((purchase) {
+      print('Purchase updated: ${purchase?.productId}');
+      _handlePurchaseUpdate(purchase);
+    });
+
+    _purchaseErrorSubscription =
+        FlutterInappPurchase.purchaseError.listen((error) {
+      print('Purchase error: ${error?.message}');
+      _handlePurchaseError(error);
+    });
+
+    // Get products if connected
+    if (_isAvailable) {
+      await _getProducts();
+    }
+  }
+
+  Future<void> _getProducts() async {
+    try {
+      final products = await FlutterInappPurchase.instance.getProducts(iosProductIds);
+      setState(() {
+        _products = products;
+      });
+    } catch (error) {
+      print('Failed to get products: $error');
+    }
+  }
+
+  void _handlePurchaseUpdate(PurchaseResult? purchase) {
+    if (purchase != null) {
+      switch (purchase.purchaseStateIOS) {
+        case PurchaseState.purchased:
+          _verifyAndFinishPurchase(purchase);
+          break;
+        case PurchaseState.restored:
+          print('Purchase restored: ${purchase.productId}');
+          break;
+        case PurchaseState.purchasing:
+          print('Purchase in progress: ${purchase.productId}');
+          break;
+        case PurchaseState.deferred:
+          print('Purchase deferred: ${purchase.productId}');
+          break;
+        case PurchaseState.failed:
+          print('Purchase failed: ${purchase.productId}');
+          break;
+      }
+    }
+  }
+
+  void _handlePurchaseError(PurchaseResult? error) {
+    if (error != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Purchase Error'),
+          content: Text(error.message ?? 'Unknown error occurred'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _verifyAndFinishPurchase(PurchaseResult purchase) async {
+    // Verify purchase on your server
+    final isValid = await _verifyPurchaseOnServer(purchase);
+    
+    if (isValid) {
+      // Grant access to content
+      await _grantPurchaseContent(purchase);
+      
+      // Finish the transaction
+      await FlutterInappPurchase.instance.finishTransactionIOS(
+        purchase,
+        isConsumable: purchase.productId?.contains('consumable') ?? false,
+      );
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Purchase successful!')),
+      );
+    } else {
+      print('Purchase verification failed');
+    }
+  }
+
+  Future<bool> _verifyPurchaseOnServer(PurchaseResult purchase) async {
+    // Implement server-side receipt validation
+    // This is a placeholder - implement your actual validation logic
+    return true;
+  }
+
+  Future<void> _grantPurchaseContent(PurchaseResult purchase) async {
+    // Grant the purchased content to the user
+    print('Granting content for: ${purchase.productId}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('iOS Store'),
+      ),
+      body: Column(
+        children: [
+          Text('Store Available: $_isAvailable'),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _products.length,
+              itemBuilder: (context, index) {
+                final product = _products[index];
+                return IOSProductTile(
+                  product: product,
+                  onPurchase: () => _purchaseProduct(product),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _purchaseProduct(IAPItem product) async {
+    try {
+      await FlutterInappPurchase.instance.requestPurchase(
+        RequestPurchase(
+          ios: RequestPurchaseIosProps(sku: product.productId!),
+        ),
+        PurchaseType.inapp,
+      );
+    } catch (error) {
+      print('Purchase request failed: $error');
+    }
+  }
+
+  @override
+  void dispose() {
+    _purchaseUpdatedSubscription.cancel();
+    _purchaseErrorSubscription.cancel();
+    FlutterInappPurchase.instance.finishTransaction();
+    super.dispose();
+  }
+}
+
+class IOSProductTile extends StatelessWidget {
+  final IAPItem product;
+  final VoidCallback onPurchase;
+
+  const IOSProductTile({
+    Key? key,
+    required this.product,
+    required this.onPurchase,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.all(8.0),
+      child: ListTile(
+        title: Text(product.title ?? 'Unknown Product'),
+        subtitle: Text(product.description ?? 'No description'),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              product.localizedPrice ?? 'N/A',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            ElevatedButton(
+              onPressed: onPurchase,
+              child: Text('Buy'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 ```
 
-### Configure StoreKit Testing
+### iOS-Specific Features
 
-For local testing with StoreKit Configuration File:
-
-1. In Xcode, go to **File** → **New** → **File**
-2. Choose **StoreKit Configuration File**
-3. Name it (e.g., `Products.storekit`)
-4. Add your products for testing
-
-## App Store Connect Configuration
-
-### Create Your App
-
-1. Sign in to [App Store Connect](https://appstoreconnect.apple.com)
-2. Go to **My Apps** → **+** → **New App**
-3. Fill in the required information:
-   - Platform: iOS
-   - Name: Your app name
-   - Primary Language
-   - Bundle ID: Must match your Xcode project
-   - SKU: Unique identifier for your app
-
-### Configure In-App Purchases
-
-1. Select your app in App Store Connect
-2. Go to **Monetization** → **In-App Purchases**
-3. Click **+** to create a new in-app purchase
-4. Choose the product type:
-   - **Consumable**: Can be purchased multiple times
-   - **Non-Consumable**: One-time purchase
-   - **Auto-Renewable Subscription**: Recurring subscription
-   - **Non-Renewing Subscription**: Fixed-term subscription
-
-### Product Configuration
-
-Fill in the required fields for each product:
-
-```
-Reference Name: Premium Upgrade (internal use)
-Product ID: com.yourapp.premium_upgrade
-Price: Choose from price tiers
-Display Name: Premium Features
-Description: Unlock all premium features
-```
-
-:::tip Product ID Best Practices
-- Use reverse domain notation: `com.yourapp.productname`
-- Keep IDs consistent across platforms
-- Avoid special characters and spaces
-- Use descriptive names: `premium_monthly`, `coins_pack_large`
-:::
-
-## StoreKit 2 Implementation
-
-### Enable StoreKit 2
-
-flutter_inapp_purchase automatically uses StoreKit 2 on iOS 15+. To ensure compatibility:
+#### StoreKit 2 Support
 
 ```dart
 // Check StoreKit 2 availability
-if (Platform.isIOS) {
-  final version = await FlutterInappPurchase.instance.getIOSVersion();
-  final isStoreKit2Available = version >= 15.0;
-  print('StoreKit 2 available: $isStoreKit2Available');
-}
-```
-
-### StoreKit Configuration File
-
-Create a `.storekit` file for testing:
-
-```json title="Products.storekit"
-{
-  "identifier": "YOUR_BUNDLE_ID",
-  "nonRenewingSubscriptions": [],
-  "products": [
-    {
-      "displayPrice": "0.99",
-      "familyShareable": false,
-      "internalID": "XXXXXX",
-      "localizations": [
-        {
-          "description": "Remove all advertisements",
-          "displayName": "Remove Ads",
-          "locale": "en_US"
-        }
-      ],
-      "productID": "com.yourapp.remove_ads",
-      "referenceName": "Remove Ads",
-      "type": "NonConsumable"
-    }
-  ],
-  "settings": {},
-  "subscriptionGroups": []
-}
-```
-
-## Testing Setup
-
-### Sandbox Testing
-
-1. Create sandbox tester accounts in App Store Connect:
-   - Go to **Users and Access** → **Sandbox Testers**
-   - Click **+** to add a new tester
-   - Use a unique email (not associated with an Apple ID)
-
-2. Configure your device for sandbox testing:
-   - Sign out of your Apple ID in Settings
-   - When prompted during purchase, sign in with sandbox account
-
-### StoreKit Testing in Xcode
-
-1. In Xcode, go to **Product** → **Scheme** → **Edit Scheme**
-2. Select **Run** → **Options**
-3. Under **StoreKit Configuration**, select your `.storekit` file
-4. Run your app - purchases will use the local configuration
-
-### Test Purchase Flow
-
-```dart title="iOS Testing Example"
-Future<void> testIOSPurchase() async {
-  try {
-    // Initialize connection
-    await FlutterInappPurchase.instance.initConnection();
-    print('StoreKit connected');
-    
-    // Get products
-    final products = await FlutterInappPurchase.instance.getProducts([
-      'com.yourapp.premium_upgrade',
-      'com.yourapp.remove_ads'
-    ]);
-    print('Found ${products.length} products');
-    
-    // Display products
-    for (var product in products) {
-      print('Product: ${product.productId}');
-      print('Price: ${product.localizedPrice}');
-      print('Title: ${product.title}');
-    }
-    
-    // Test purchase
-    if (products.isNotEmpty) {
-      await FlutterInappPurchase.instance.requestPurchaseSimple(
-        productId: products.first.productId!,
-        type: PurchaseType.inapp,
-      );
-    }
-  } catch (e) {
-    print('iOS test failed: $e');
+Future<void> checkStoreKit2Support() async {
+  if (Platform.isIOS) {
+    final version = await FlutterInappPurchase.instance.getIOSVersion();
+    final isStoreKit2Available = version >= 15.0;
+    print('StoreKit 2 available: $isStoreKit2Available');
   }
 }
 ```
 
-## StoreKit 2 Features
-
-### Transaction Management
-
-```dart
-// Listen for transaction updates
-FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
-  if (purchase != null) {
-    print('Transaction updated: ${purchase.transactionId}');
-    
-    // Verify the purchase
-    final isValid = await verifyPurchase(purchase);
-    
-    if (isValid) {
-      // Deliver content
-      await deliverContent(purchase);
-      
-      // Finish transaction
-      await FlutterInappPurchase.instance.finishTransactionIOS(
-        purchase,
-        isConsumable: false,
-      );
-    }
-  }
-});
-```
-
-### Subscription Management
+#### Subscription Management
 
 ```dart
 // Show subscription management page
@@ -251,90 +277,98 @@ Future<void> redeemCode() async {
 }
 ```
 
-## Common Issues & Solutions
+#### Restore Purchases
 
-### Issue: Products not loading
+```dart
+Future<void> restorePurchases() async {
+  try {
+    final restoredPurchases = await FlutterInappPurchase.instance.restoreTransactions();
+    print('Restored ${restoredPurchases.length} purchases');
+    
+    for (var purchase in restoredPurchases) {
+      await _verifyAndFinishPurchase(purchase);
+    }
+  } catch (error) {
+    print('Restore failed: $error');
+  }
+}
+```
 
-**Solutions:**
-- Ensure your Apple Developer agreements are active
-- Verify product IDs match exactly
-- Products must be submitted for review at least once
-- Wait 24 hours after creating products
-- Check that Bundle ID matches App Store Connect
+### Error Handling
 
-### Issue: "Cannot connect to iTunes Store"
+```dart
+void handleIOSError(PurchaseResult? error) {
+  if (error?.code != null) {
+    switch (error!.code) {
+      case 'E_USER_CANCELLED':
+        // User cancelled - no action needed
+        break;
+      case 'E_PAYMENT_INVALID':
+        showErrorDialog('Payment information is invalid');
+        break;
+      case 'E_PAYMENT_NOT_ALLOWED':
+        showErrorDialog('Payments are not allowed on this device');
+        break;
+      case 'E_PRODUCT_NOT_AVAILABLE':
+        showErrorDialog('This product is not available');
+        break;
+      case 'E_RECEIPT_FAILED':
+        showErrorDialog('Receipt validation failed');
+        break;
+      default:
+        showErrorDialog('Purchase failed: ${error.message}');
+    }
+  }
+}
 
-**Solutions:**
-- Test on a real device (not simulator)
-- Ensure you're using a sandbox account
-- Check network connectivity
-- Verify In-App Purchase capability is enabled
+void showErrorDialog(String message) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Error'),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('OK'),
+        ),
+      ],
+    ),
+  );
+}
+```
 
-### Issue: Sandbox purchases not working
+## Common Issues
 
-**Solutions:**
+### Products Not Loading
+
+**Problem**: `getProducts()` returns empty list or throws error
+**Solutions**:
+- Verify product IDs match exactly between code and App Store Connect
+- Ensure products are **Active** in App Store Connect
+- Check that all Apple Developer agreements are signed
+- Wait 24 hours after creating products in App Store Connect
+
+### Testing Issues
+
+**Problem**: "Cannot connect to iTunes Store" error
+**Solutions**:
+- Test on real device, not simulator
+- Use proper sandbox tester account
 - Sign out of production Apple ID first
-- Use a valid sandbox tester account
-- Clear App Store cache: Settings → App Store → Sign Out/In
-- Ensure device region matches product availability
-
-### Issue: StoreKit 2 compatibility
-
-**Solutions:**
-- Update to Xcode 14 or later
-- Ensure minimum iOS deployment target is correct
-- Check device/simulator iOS version (15.0+ for StoreKit 2)
-
-## Advanced Configuration
+- Ensure In-App Purchase capability is enabled in Xcode
 
 ### Receipt Validation
 
-Always validate receipts on your server:
-
-```dart
-FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
-  if (purchase != null && purchase.transactionReceipt != null) {
-    // Send receipt to your server
-    final validationResult = await validateReceiptOnServer(
-      receipt: purchase.transactionReceipt!,
-      productId: purchase.productId,
-    );
-    
-    if (validationResult.isValid) {
-      // Grant access to content
-      await grantPurchase(purchase);
-    }
-  }
-});
-```
-
-### Family Sharing
-
-Enable family sharing for non-consumable purchases:
-
-1. In App Store Connect, edit your in-app purchase
-2. Enable **Family Sharing**
-3. Submit for review
-
-### Promotional Offers
-
-Configure promotional offers for subscriptions:
-
-```dart
-// Request purchase with promotional offer
-await FlutterInappPurchase.instance.requestPurchase(
-  sku: 'monthly_subscription',
-  type: PurchaseType.subs,
-  // Add promotional offer parameters if needed
-);
-```
+**Problem**: Receipt validation failing
+**Solutions**:
+- Always validate receipts on your server, not client-side
+- Use Apple's receipt validation API
+- Handle both sandbox and production receipt endpoints
+- Implement proper retry logic for network failures
 
 ## Next Steps
 
-- [Learn about Android setup](./android-setup)
-- [Explore getting started guide](./quickstart)
+- [Learn about getting started guide](./quickstart)
+- [Explore Android setup](./android-setup)
 - [Understand error codes](../api/error-codes)
-
----
-
-Need help? Check our [troubleshooting guide](/docs/troubleshooting) or [open an issue](https://github.com/hyochan/flutter_inapp_purchase/issues) on GitHub.
