@@ -1,173 +1,129 @@
-## 6.0.0-rc.1
-
-### Release Candidate
-
-This is a release candidate for v6.0.0 with significant breaking changes. Please test thoroughly before using in production.
-
-### Package Changes
-
-- **Package**: Changed package name from `dev.hyochan.flutterinapppurchase` to `dev.hyo.flutterinapppurchase`
-- **Documentation**: Moved from `docs/` to `doc/` directory for pub.dev convention
-- **Version**: First release candidate for v6.0.0 major version
-
-### Breaking Changes
-
-- **iOS**: Now requires iOS 11.0+ (previously 8.0+)
-- **iOS**: StoreKit 2 is now used by default on iOS 15.0+ devices
-- **Android**: Updated to Billing Client v8.0.0 (from v6.0.1)
-- **API**: Complete refactoring of class structure and enum naming conventions
-  - `ErrorCode` enum values changed from `E_UNKNOWN` to `eUnknown` (lowerCamelCase)
-  - `PeriodUnitIOS` enum values changed from `DAY` to `day` (lowerCamelCase)
-  - Platform-specific classes moved to mixins (`FlutterInappPurchaseIOS`, `FlutterInappPurchaseAndroid`)
-  - Channel access changed from static to instance member
-
-### New Features
-
-- **iOS**: Full StoreKit 2 support for iOS 15.0+
-  - Automatic transaction verification
-  - Better subscription management
-  - Improved error handling
-  - No receipt validation needed for StoreKit 2
-- **iOS**: Automatic fallback to StoreKit 1 for iOS 11.0-14.x
-- **Android**: Support for all Billing Client v8 features
-- **Architecture**: New mixin-based architecture for better code organization
-  - Platform-specific code separated into `modules/ios.dart` and `modules/android.dart`
-  - Improved testability and maintainability
-
-### Migration Guide
-
-- Update all `ErrorCode` references:
-  ```dart
-  // Before
-  ErrorCode.E_USER_CANCELLED
-  // After
-  ErrorCode.eUserCancelled
-  ```
-- Update channel access in tests:
-  ```dart
-  // Before
-  FlutterInappPurchase.channel
-  // After
-  FlutterInappPurchase.instance.channel
-  ```
-- StoreKit 2 will be used automatically on supported devices
-- StoreKit Configuration files (.storekit) work with StoreKit 2 on iOS 15+
+# CHANGELOG
 
 ## 6.0.0
 
+### Major Release - Open IAP Specification Compliance
+
+This major release redesigns the API to fully comply with the [Open IAP](https://www.openiap.dev) specification, providing a standardized interface for in-app purchases across platforms.
+
+### What is Open IAP?
+
+[Open IAP](https://www.openiap.dev) is an open standard for implementing in-app purchases consistently across different platforms and frameworks. By following this specification, flutter_inapp_purchase now offers:
+
+- Consistent API design patterns
+- Standardized error codes and handling
+- Unified purchase flow across iOS and Android
+- Better interoperability with other IAP libraries
+
 ### Breaking Changes
 
-- **iOS**: Now requires iOS 11.0+ (previously 8.0+)
-- **iOS**: StoreKit 2 is now used by default on iOS 15.0+ devices
-- **Android**: Updated to Billing Client v8.0.0 (from v6.0.1)
-- **API**: Complete refactoring of class structure and enum naming conventions
-  - `ErrorCode` enum values changed from `E_UNKNOWN` to `eUnknown` (lowerCamelCase)
-  - `PeriodUnitIOS` enum values changed from `DAY` to `day` (lowerCamelCase)
-  - Platform-specific classes moved to mixins (`FlutterInappPurchaseIOS`, `FlutterInappPurchaseAndroid`)
-  - Channel access changed from static to instance member
+- **Architecture**: Complete redesign following Open IAP specification
+  - Removed `useIap` hook and `IapProvider` - use `FlutterInappPurchase.instance` directly
+  - Removed `flutter_hooks` dependency
+  - Simplified API with direct instance access pattern
+- **iOS**: Now requires iOS 11.0+ with StoreKit 2 support (iOS 15.0+)
+- **Android**: Updated to Billing Client v8.0.0
+- **API Changes**:
+  - Enum naming convention: `E_UNKNOWN` → `eUnknown` (lowerCamelCase)
+  - Channel access: `FlutterInappPurchase.channel` → `FlutterInappPurchase.instance.channel`
+  - Unified error handling with standardized error codes
 
 ### New Features
 
-- **iOS**: Full StoreKit 2 support for iOS 15.0+
-  - Automatic transaction verification
-  - Better subscription management
-  - Improved error handling
-  - No receipt validation needed for StoreKit 2
-- **iOS**: Automatic fallback to StoreKit 1 for iOS 11.0-14.x
-- **Android**: Support for all Billing Client v8 features
-- **Architecture**: New mixin-based architecture for better code organization
-  - Platform-specific code separated into `modules/ios.dart` and `modules/android.dart`
-  - Improved testability and maintainability
+- **Open IAP Compliance**: Full implementation of the Open IAP specification
+- **Improved Error Handling**: Standardized error codes across platforms
+- **Event-based Architecture**: New listeners for purchase updates and errors
+- **StoreKit 2 Support**: Automatic transaction verification on iOS 15.0+
+- **Better Type Safety**: Enhanced TypeScript-like type definitions
 
 ### Migration Guide
 
-- Update all `ErrorCode` references:
-  ```dart
-  // Before
-  ErrorCode.E_USER_CANCELLED
-  // After
-  ErrorCode.eUserCancelled
-  ```
-- Update channel access in tests:
-  ```dart
-  // Before
-  FlutterInappPurchase.channel
-  // After
-  FlutterInappPurchase.instance.channel
-  ```
-- StoreKit 2 will be used automatically on supported devices
-- StoreKit Configuration files (.storekit) work with StoreKit 2 on iOS 15+
+```dart
+// Before (5.x)
+final iap = useIap();
+await iap.initialize();
+
+// After (6.0)
+final iap = FlutterInappPurchase.instance;
+await iap.initConnection();
+```
+
+For complete migration details, see the [documentation](https://flutter-inapp-purchase.hyo.dev).
 
 ## 5.6.2
 
-- fix: removed references to deprecated v1 Android embedding by @moodstubos in https://github.com/hyochan/flutter_inapp_purchase/pull/497
+- fix: removed references to deprecated v1 Android embedding by @moodstubos in <https://github.com/hyochan/flutter_inapp_purchase/pull/497>
 
 ## 5.6.1
 
-- Erroneous duplicate item by @deakjahn in https://github.com/hyochan/flutter_inapp_purchase/pull/441
-- Fixed consumable products reading on Android by @33-Elephants in https://github.com/hyochan/flutter_inapp_purchase/pull/439
-- fix: Support AGP8 namespace by @dev-yakuza in https://github.com/hyochan/flutter_inapp_purchase/pull/467
+- Erroneous duplicate item by @deakjahn in <https://github.com/hyochan/flutter_inapp_purchase/pull/441>
+- Fixed consumable products reading on Android by @33-Elephants in <https://github.com/hyochan/flutter_inapp_purchase/pull/439>
+- fix: Support AGP8 namespace by @dev-yakuza in <https://github.com/hyochan/flutter_inapp_purchase/pull/467>
 
 ## 5.6.0
 
 - refactor: android init connection
-  ```
+
+  ```text
   Used Kotlin apply for cleaner initialization of billingClient.
   Introduced context ?: return for null-safety with context.
   Merged repetitive code into the updateConnectionStatus method to avoid duplication.
   Improved the handling of the alreadyFinished flag to ensure it is only set once and at the appropriate time.
   Streamlined the error and success handling for clarity.
   ```
+
 - Migrate android billingClient to 6.0.1
-  - https://developer.android.com/google/play/billing/release-notes#6-0-1
+  - <https://developer.android.com/google/play/billing/release-notes#6-0-1>
 
 ## 5.5.0
 
 - Erroneous duplicate item (#441) - Remove extra `introductoryPricePaymentModeIOS`
 - Fixed consumable products reading on Android (#439)
 - chore(deps): migrate internal packages to recent
-  ```
+
+  ```sh
   http: ^1.1.0
   meta: ^1.10.0
   platform: ^3.1.3
   ```
+
 - chore: migrate example project to recent flutter version, 3.16.0-0.3.pre
 
 ## 5.4.2
 
 ## What's Changed
 
-- Update actions/stale action to v8 by @renovate in https://github.com/hyochan/flutter_inapp_purchase/pull/414
-- Fix - wrong casting by @BrunoFSimon in https://github.com/hyochan/flutter_inapp_purchase/pull/427
-- Fixed consumable product purchase on Android by @33-Elephants in https://github.com/hyochan/flutter_inapp_purchase/pull/420
+- Update actions/stale action to v8 by @renovate in <https://github.com/hyochan/flutter_inapp_purchase/pull/414>
+- Fix - wrong casting by @BrunoFSimon in <https://github.com/hyochan/flutter_inapp_purchase/pull/427>
+- Fixed consumable product purchase on Android by @33-Elephants in <https://github.com/hyochan/flutter_inapp_purchase/pull/420>
 
 ## New Contributors
 
-- @BrunoFSimon made their first contribution in https://github.com/hyochan/flutter_inapp_purchase/pull/427
-- @33-Elephants made their first contribution in https://github.com/hyochan/flutter_inapp_purchase/pull/420
+- @BrunoFSimon made their first contribution in <https://github.com/hyochan/flutter_inapp_purchase/pull/427>
+- @33-Elephants made their first contribution in <https://github.com/hyochan/flutter_inapp_purchase/pull/420>
 
-**Full Changelog**: https://github.com/hyochan/flutter_inapp_purchase/compare/5.4.1...5.4.2
+**Full Changelog**: <https://github.com/hyochan/flutter_inapp_purchase/compare/5.4.1...5.4.2>
 
 ## 5.4.1
 
-- Fixed concurrency issue on iOS. by @OctavianLfrd in https://github.com/hyochan/flutter_inapp_purchase/pull/413
+- Fixed concurrency issue on iOS. by @OctavianLfrd in <https://github.com/hyochan/flutter_inapp_purchase/pull/413>
 
 ## 5.4.0
 
-- Fixed wrong casting in checkSubscribed method by @kleeb in https://github.com/hyochan/flutter_inapp_purchase/pull/368
-- Upgrade to billing 5.1 (reverse compatible) by @SamBergeron in https://github.com/hyochan/flutter_inapp_purchase/pull/392
+- Fixed wrong casting in checkSubscribed method by @kleeb in <https://github.com/hyochan/flutter_inapp_purchase/pull/368>
+- Upgrade to billing 5.1 (reverse compatible) by @SamBergeron in <https://github.com/hyochan/flutter_inapp_purchase/pull/392>
 
 ## 5.3.0
 
 ## What's Changed
 
-- Refactor java to kotlin, add showInAppMessageAndroid by @offline-first in https://github.com/hyochan/flutter_inapp_purchase/pull/365
+- Refactor java to kotlin, add showInAppMessageAndroid by @offline-first in <https://github.com/hyochan/flutter_inapp_purchase/pull/365>
 
 ## New Contributors
 
-- @offline-first made their first contribution in https://github.com/hyochan/flutter_inapp_purchase/pull/365
+- @offline-first made their first contribution in <https://github.com/hyochan/flutter_inapp_purchase/pull/365>
 
-**Full Changelog**: https://github.com/hyochan/flutter_inapp_purchase/compare/5.2.0...5.3.0
+**Full Changelog**: <https://github.com/hyochan/flutter_inapp_purchase/compare/5.2.0...5.3.0>
 
 ## 5.2.0
 
@@ -402,7 +358,7 @@ Republishing since sourcode seems not merged correctly.
 
 - Breaking change. Migrate from the deprecated original Android Support Library to AndroidX. This shouldn't result in any functional changes, but it requires any Android apps using this plugin to also migrate to Android X if they're using the original support library. [Android's Migrating to Android X Guide](https://developer.android.com/jetpack/androidx/migrate).
 
-* Improved getPurchaseHistory's speed 44% faster [#68](https://github.com/hyochan/flutter_inapp_purchase/pull/68).
+- Improved getPurchaseHistory's speed 44% faster [#68](https://github.com/hyochan/flutter_inapp_purchase/pull/68).
 
 ## 0.8.+
 
@@ -417,8 +373,8 @@ Republishing since sourcode seems not merged correctly.
 - Use dictionaryWithObjectsAndKeys in NSDictionary to fetch product values. This will prevent from NSInvalidArgumentException in ios which rarely occurs.
 - Fixed wrong npe in `android` when `getAvailablePurchases`.
 
-* Only parse `orderId` when exists in `Android` to prevent crashing.
-* Add additional success purchase listener in `iOS`. Related [#54](https://github.com/hyochan/flutter_inapp_purchase/issues/54)
+- Only parse `orderId` when exists in `Android` to prevent crashing.
+- Add additional success purchase listener in `iOS`. Related [#54](https://github.com/hyochan/flutter_inapp_purchase/issues/54)
 
 ## 0.7.1
 
