@@ -19,7 +19,7 @@
 
 ```yaml
 dependencies:
-  flutter_inapp_purchase: ^6.0.0-rc.4
+  flutter_inapp_purchase: ^6.1.0
 ```
 
 ## 🔧 Quick Start
