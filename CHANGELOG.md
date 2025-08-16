@@ -28,6 +28,7 @@
 ### Migration Guide
 
 If you're upgrading from 6.0.x and were using any deprecated methods:
+
 - Replace `initialize()` with `initConnection()`
 - Replace `acknowledgePurchaseAndroid()` with `finishTransaction()`
 - Use `requestPurchase()` with proper RequestPurchase objects instead of platform-specific methods
