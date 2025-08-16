@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 6.1.0
+
+### Breaking Changes
+
+- **API Cleanup**: Removed all deprecated methods that were marked for removal in 6.0.0
+  - Removed `initialize()` - use `initConnection()` instead
+  - Removed `checkSubscribed()` - implement custom logic with `getAvailablePurchases()`
+  - Removed `showInAppMessageAndroid()` - no longer supported
+  - Removed `manageSubscription()` - use `deepLinkToSubscriptionsAndroid()` instead
+  - Removed `openPlayStoreSubscriptions()` - use `deepLinkToSubscriptionsAndroid()` instead
+  - Removed `clearTransactionIOS()` - no longer needed
+  - Removed `showPromoCodesIOS()` - use `presentCodeRedemptionSheetIOS()` instead
+  - Removed `getPromotedProductIOS()` and `requestPromotedProductIOS()` - use standard purchase flow
+  - Removed `requestProductWithOfferIOS()` and `requestPurchaseWithQuantityIOS()` - use `requestPurchase()` with RequestPurchase object
+  - Removed `consumePurchaseAndroidLegacy()` and `validateReceiptAndroidLegacy()` - use modern equivalents
+  - Removed `deepLinkToSubscriptionsAndroidLegacy()` - use `deepLinkToSubscriptionsAndroid()`
+  - Removed `acknowledgePurchaseAndroid()` - use `finishTransaction()` instead
+
+### Improvements
+
+- **Code Quality**: Removed internal legacy methods and cleaned up codebase
+  - Removed `_requestPurchaseOld()` internal method
+  - Consolidated duplicate functionality
+  - Improved type safety and consistency
+
+### Migration Guide
+
+If you're upgrading from 6.0.x and were using any deprecated methods:
+- Replace `initialize()` with `initConnection()`
+- Replace `acknowledgePurchaseAndroid()` with `finishTransaction()`
+- Use `requestPurchase()` with proper RequestPurchase objects instead of platform-specific methods
+- Use `presentCodeRedemptionSheetIOS()` for promo codes on iOS
+
 ## 6.0.2
 
 ### Bug Fixes
