@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 6.0.1
+
+### Bug Fixes
+
+- **iOS**: Fixed type casting issue where `subscriptionPeriodNumberIOS` was sent as integer instead of string from native iOS code, causing runtime errors
+- **Internal**: Renamed unused stream controllers for better code clarity
+  - `_purchaseUpdatedController` → `_purchaseUpdatedListener`
+  - `_purchaseErrorListenerController` → `_purchaseErrorListener`
+
 ## 6.0.0
 
 ### Major Release - Open IAP Specification Compliance
