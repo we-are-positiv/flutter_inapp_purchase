@@ -698,7 +698,12 @@ class FlutterInappPurchase
           ? _mapAndroidPurchaseState(item.purchaseStateAndroid!)
           : null,
       originalTransactionIdentifierIOS: item.originalTransactionIdentifierIOS,
-      originalJson: null,
+      originalJson: item.originalJsonAndroid,
+      signatureAndroid: item.signatureAndroid,
+      packageNameAndroid: item.packageNameAndroid,
+      autoRenewingAndroid: item.autoRenewingAndroid,
+      developerPayloadAndroid: item.developerPayloadAndroid,
+      orderIdAndroid: item.orderId,
     );
   }
 
