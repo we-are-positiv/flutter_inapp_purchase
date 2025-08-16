@@ -66,7 +66,7 @@ class _AvailablePurchasesScreenState extends State<AvailablePurchasesScreen> {
 
     try {
       // Load available purchases (non-consumed)
-      final availablePurchases = await _iap.getActivePurchases();
+      final availablePurchases = await _iap.getAvailablePurchases();
 
       // Load purchase history
       final purchaseHistory = await _iap.getPurchaseHistories();
@@ -94,7 +94,7 @@ class _AvailablePurchasesScreenState extends State<AvailablePurchasesScreen> {
     });
 
     try {
-      final restored = await _iap.getActivePurchases();
+      final restored = await _iap.getAvailablePurchases();
       setState(() {
         _availablePurchases = restored;
       });

@@ -376,9 +376,9 @@ class FlutterInappPurchase
     await requestPurchase(request: request, type: type);
   }
 
-  /// Get non-consumed purchases (active purchases that haven't been finished)
-  /// Returns purchases that are still pending acknowledgment or consumption
-  Future<List<iap_types.Purchase>> getActivePurchases() async {
+  /// Get all available purchases (OpenIAP standard)
+  /// Returns non-consumed purchases that are still pending acknowledgment or consumption
+  Future<List<iap_types.Purchase>> getAvailablePurchases() async {
     if (!_isInitialized) {
       throw iap_types.PurchaseError(
         code: iap_types.ErrorCode.eNotInitialized,
@@ -417,7 +417,7 @@ class FlutterInappPurchase
     } catch (e) {
       throw iap_types.PurchaseError(
         code: iap_types.ErrorCode.eServiceError,
-        message: 'Failed to get active purchases: ${e.toString()}',
+        message: 'Failed to get available purchases: ${e.toString()}',
         platform: iap_types.getCurrentPlatform(),
       );
     }
