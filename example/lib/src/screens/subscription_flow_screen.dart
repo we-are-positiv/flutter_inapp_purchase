@@ -190,7 +190,7 @@ Platform: ${error.platform}
 
   Future<void> _loadActiveSubscriptions() async {
     try {
-      final purchases = await _iap.getActivePurchases();
+      final purchases = await _iap.getAvailablePurchases();
       setState(() {
         _activeSubscriptions = purchases
             .where((p) => subscriptionIds.contains(p.productId))
