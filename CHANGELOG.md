@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 6.0.2
+
+### Bug Fixes
+
+- **Android**: Fixed missing `signatureAndroid` field in purchase conversion
+  - Added `signatureAndroid` and other Android-specific fields to the Purchase object
+  - Ensures Android purchase signature is properly passed through for receipt validation
+
 ## 6.0.1
 
 ### Bug Fixes
