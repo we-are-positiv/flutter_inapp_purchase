@@ -2,6 +2,12 @@
 
 ## Flutter-Specific Guidelines
 
+### Documentation Style
+
+- **Avoid using emojis** in documentation, especially in headings
+- Keep documentation clean and professional for better readability
+- Focus on clear, concise technical writing
+
 ### Pre-Commit Checks
 
 Before committing any changes, run these commands in order and ensure ALL pass:
