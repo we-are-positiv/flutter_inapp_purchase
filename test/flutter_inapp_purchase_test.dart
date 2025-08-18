@@ -610,8 +610,8 @@ void main() {
             }
             if (methodCall.method == 'getAvailableItems') {
               // Return a mock iOS subscription purchase
-              return [
-                {
+              return <Map<String, dynamic>>[
+                <String, dynamic>{
                   'productId': 'monthly_subscription',
                   'transactionId': '1000000123456789',
                   'transactionDate': DateTime.now().millisecondsSinceEpoch,
@@ -662,7 +662,7 @@ void main() {
           }
           if (methodCall.method == 'requestPurchase') {
             // Simulate purchase flow with unified purchaseToken
-            return {
+            return <String, dynamic>{
               'productId': methodCall.arguments['sku'],
               'transactionId': 'GPA.test-transaction-123',
               'transactionDate': DateTime.now().millisecondsSinceEpoch,
@@ -675,7 +675,7 @@ void main() {
           }
           if (methodCall.method == 'requestSubscription') {
             // Simulate subscription flow with unified purchaseToken
-            return {
+            return <String, dynamic>{
               'productId': methodCall.arguments['sku'],
               'transactionId': 'GPA.sub-transaction-456',
               'transactionDate': DateTime.now().millisecondsSinceEpoch,
@@ -742,7 +742,7 @@ void main() {
           }
           if (methodCall.method == 'requestPurchase') {
             // Simulate iOS purchase with JWS token
-            return {
+            return <String, dynamic>{
               'productId': methodCall.arguments,
               'transactionId': '2000000123456789',
               'transactionDate': DateTime.now().millisecondsSinceEpoch,
@@ -856,8 +856,8 @@ void main() {
           }
           if (methodCall.method == 'getAvailableItems') {
             // Return iOS purchases with JWS tokens
-            return [
-              {
+            return <Map<String, dynamic>>[
+              <String, dynamic>{
                 'productId': 'ios.product.1',
                 'transactionId': '2000000111111111',
                 'transactionDate': DateTime.now().millisecondsSinceEpoch,
