@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 6.2.0
+
+### Features
+
+- **OpenIAP Compliance**: Added `id` field to `Purchase` class for standardized transaction identification
+- **Unified Purchase Token**: Added `purchaseToken` field for cross-platform server validation
+  - iOS: Contains JWS representation for App Store validation
+  - Android: Contains purchase token for Google Play validation
+  - Deprecated platform-specific token fields in favor of unified approach
+
+### Improvements
+
+- **Transaction Management**: `finishTransaction` now accepts `Purchase` objects directly
+- **iOS StoreKit 2**: Complete implementation with improved transaction handling
+- **Date Handling**: Fixed date parsing issues across platforms
+- **Error Handling**: Enhanced error reporting and duplicate event prevention
+
+### Bug Fixes
+
+- Fixed missing `transactionId` and `id` fields in Android purchase responses
+- Fixed iOS transaction finishing with proper ID lookup
+- Fixed date conversion issues in `Purchase.fromJson()`
+
+### Breaking Changes
+
+None - This version maintains backward compatibility.
+
 ## 6.1.0
 
 ### Breaking Changes
