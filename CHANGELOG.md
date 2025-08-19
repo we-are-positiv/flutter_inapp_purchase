@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## 6.3.2
+
+### Bug Fixes
+
+- **iOS Purchase State Detection**: Enhanced purchase state detection for iOS
+  - Fixed UI getting stuck in "Processing..." state when `transactionStateIOS` is null
+  - Now properly detects successful purchases using multiple conditions (state, token, transaction ID)
+  - Added duplicate transaction tracking to prevent double processing
+- **Timeout Error Handling**: Improved error handling for store server timeouts
+  - Added specific handling for Korean timeout message "요청한 시간이 초과되었습니다"
+  - Provides user-friendly troubleshooting steps for network issues
+- **Security**: Enhanced security for sensitive data logging
+  - Purchase tokens are now masked in debug logs (showing only last 4 characters)
+  - All sensitive logging is properly gated behind `kDebugMode` flag
+
+### Documentation
+
+- Added comprehensive iOS purchase state detection guide
+- Enhanced troubleshooting documentation with iOS-specific solutions
+
 ## 6.3.1
 
 ### Bug Fixes
@@ -27,24 +47,27 @@
 ### Features
 
 - **Enhanced OpenIAP Compliance**: Extended OpenIAP specification support with comprehensive field mapping
+
   - Added full iOS-specific field support: `displayName`, `displayPrice`, `isFamilyShareable`, `jsonRepresentation`, `discountsIOS`, `subscription` info, and promotional offer fields
   - Added comprehensive Android-specific field support: `originalPrice`, `originalPriceAmount`, `freeTrialPeriod`, `subscriptionOffersAndroid`, and billing cycle information
   - Enhanced Purchase object with StoreKit 2 fields: `verificationResultIOS`, `environmentIOS`, `expirationDateIOS`, `revocationDateIOS`, and transaction metadata
 
 - **Improved Test Organization**: Restructured test suite by business flows
   - **Purchase Flow Tests**: General purchase operations and error handling
-  - **Subscription Flow Tests**: Subscription-specific operations and lifecycle management  
+  - **Subscription Flow Tests**: Subscription-specific operations and lifecycle management
   - **Available Purchases Tests**: Purchase history, restoration, and transaction management
   - Enhanced test coverage from 26% to 28.2%
 
 ### Improvements
 
 - **Type Safety**: Enhanced type casting and JSON parsing reliability
+
   - Fixed `Map<Object?, Object?>` to `Map<String, dynamic>` conversion issues
   - Improved null safety handling for platform-specific fields
   - Better error handling for malformed data
 
 - **Subscription Management**: Enhanced active subscription detection
+
   - Improved iOS subscription detection logic for better reliability
   - Added fallback logic for subscription identification across platforms
 
