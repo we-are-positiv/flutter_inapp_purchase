@@ -207,30 +207,44 @@ class FlutterInappPurchase
       } else if (params.type == iap_types.PurchaseType.inapp) {
         rawResult = await _channel.invokeMethod(
           'getProducts',
-          params.productIds,
+          {'productIds': params.productIds},
         );
       } else {
         rawResult = await _channel.invokeMethod(
           'getSubscriptions',
-          params.productIds,
+          {'productIds': params.productIds},
         );
       }
 
-      final List<dynamic> result = rawResult as List<dynamic>? ?? [];
+      // Android returns JSON string, iOS returns List
+      final List<dynamic> result;
+      if (rawResult is String) {
+        // Parse JSON string from Android
+        result = jsonDecode(rawResult) as List<dynamic>? ?? [];
+      } else {
+        result = rawResult as List<dynamic>? ?? [];
+      }
 
       print(
         '[flutter_inapp_purchase] Received ${result.length} items from native',
       );
 
       // Convert directly to Product/Subscription without intermediate IAPItem
-      return result
-          .map(
-            (item) => _parseProductFromNative(
-              Map<String, dynamic>.from(item as Map),
-              params.type,
-            ),
-          )
-          .toList();
+      return result.map(
+        (item) {
+          // Handle different Map types from iOS and Android
+          final Map<String, dynamic> itemMap;
+          if (item is Map<String, dynamic>) {
+            itemMap = item;
+          } else if (item is Map) {
+            // Convert Map<Object?, Object?> to Map<String, dynamic>
+            itemMap = Map<String, dynamic>.from(item);
+          } else {
+            throw Exception('Unexpected item type: ${item.runtimeType}');
+          }
+          return _parseProductFromNative(itemMap, params.type);
+        },
+      ).toList();
     } catch (e) {
       throw iap_types.PurchaseError(
         code: iap_types.ErrorCode.eServiceError,
@@ -315,6 +329,20 @@ class FlutterInappPurchase
         if (type == iap_types.PurchaseType.subs) {
           // Check if this is a RequestSubscriptionAndroid
           if (androidRequest is iap_types.RequestSubscriptionAndroid) {
+            // Validate proration mode requirements before calling requestSubscription
+            if (androidRequest.replacementModeAndroid != null &&
+                androidRequest.replacementModeAndroid != -1 &&
+                (androidRequest.purchaseTokenAndroid == null ||
+                    androidRequest.purchaseTokenAndroid!.isEmpty)) {
+              throw iap_types.PurchaseError(
+                code: iap_types.ErrorCode.eDeveloperError,
+                message:
+                    'purchaseTokenAndroid is required when using replacementModeAndroid (proration mode). '
+                    'You need the purchase token from the existing subscription to upgrade/downgrade.',
+                platform: iap_types.IapPlatform.android,
+              );
+            }
+
             await requestSubscription(
               sku,
               obfuscatedAccountIdAndroid:
@@ -650,7 +678,7 @@ class FlutterInappPurchase
         discountsIOS: _parseDiscountsIOS(json['discounts']),
         subscription: json['subscription'] != null
             ? iap_types.SubscriptionInfo.fromJson(
-                json['subscription'] as Map<String, dynamic>)
+                Map<String, dynamic>.from(json['subscription'] as Map))
             : json['subscriptionGroupId'] != null
                 ? iap_types.SubscriptionInfo(
                     subscriptionGroupId: json['subscriptionGroupId'] as String?,
@@ -699,13 +727,32 @@ class FlutterInappPurchase
     if (json == null) return null;
     final list = json as List<dynamic>;
     return list
-        .map((e) => iap_types.DiscountIOS.fromJson(e as Map<String, dynamic>))
+        .map((e) => iap_types.DiscountIOS.fromJson(e is Map<String, dynamic>
+            ? e
+            : Map<String, dynamic>.from(e as Map)))
         .toList();
   }
 
   List<iap_types.OfferDetail>? _parseOfferDetails(dynamic json) {
     if (json == null) return null;
-    final list = json as List<dynamic>;
+
+    // Handle both List and String (JSON string from Android)
+    List<dynamic> list;
+    if (json is String) {
+      // Parse JSON string from Android
+      try {
+        final parsed = jsonDecode(json);
+        if (parsed is! List) return null;
+        list = parsed;
+      } catch (e) {
+        return null;
+      }
+    } else if (json is List) {
+      list = json;
+    } else {
+      return null;
+    }
+
     return list
         .map(
           (e) => iap_types.OfferDetail(
@@ -721,18 +768,60 @@ class FlutterInappPurchase
 
   List<iap_types.PricingPhase>? _parsePricingPhases(dynamic json) {
     if (json == null) return null;
-    final list = json as List<dynamic>;
-    return list
-        .map(
-          (e) => iap_types.PricingPhase(
-            priceAmount: (e['priceAmountMicros'] as num?)?.toDouble() ?? 0.0,
-            price: e['formattedPrice'] as String? ?? '0',
-            currency: e['priceCurrencyCode'] as String? ?? 'USD',
-            billingPeriod: e['billingPeriod'] as String?,
-            billingCycleCount: e['billingCycleCount'] as int?,
-          ),
-        )
-        .toList();
+
+    // Handle nested structure from Android
+    List<dynamic>? list;
+    if (json is Map && json['pricingPhaseList'] != null) {
+      list = json['pricingPhaseList'] as List<dynamic>?;
+    } else if (json is List) {
+      list = json;
+    } else {
+      return null;
+    }
+
+    if (list == null) return null;
+
+    return list.map(
+      (e) {
+        // Handle priceAmountMicros as either String or num and scale to currency units
+        final priceAmountMicros = e['priceAmountMicros'];
+        double priceAmount = 0.0;
+        if (priceAmountMicros != null) {
+          final double micros = priceAmountMicros is num
+              ? priceAmountMicros.toDouble()
+              : (priceAmountMicros is String
+                  ? double.tryParse(priceAmountMicros) ?? 0.0
+                  : 0.0);
+          priceAmount = micros / 1000000.0; // Convert micros to currency units
+        }
+
+        // Map recurrenceMode if present (BillingClient: 1=infinite, 2=finite, 3=non-recurring)
+        iap_types.RecurrenceMode? recurrenceMode;
+        final rm = e['recurrenceMode'];
+        if (rm is int) {
+          switch (rm) {
+            case 1:
+              recurrenceMode = iap_types.RecurrenceMode.infiniteRecurring;
+              break;
+            case 2:
+              recurrenceMode = iap_types.RecurrenceMode.finiteRecurring;
+              break;
+            case 3:
+              recurrenceMode = iap_types.RecurrenceMode.nonRecurring;
+              break;
+          }
+        }
+
+        return iap_types.PricingPhase(
+          priceAmount: priceAmount,
+          price: e['formattedPrice'] as String? ?? '0',
+          currency: e['priceCurrencyCode'] as String? ?? 'USD',
+          billingPeriod: e['billingPeriod'] as String?,
+          billingCycleCount: e['billingCycleCount'] as int?,
+          recurrenceMode: recurrenceMode,
+        );
+      },
+    ).toList();
   }
 
   iap_types.PurchaseState _mapAndroidPurchaseState(int state) {
@@ -990,6 +1079,31 @@ class FlutterInappPurchase
   }
 
   /// Request a subscription
+  ///
+  /// For NEW subscriptions:
+  /// - Simply call with productId
+  /// - Do NOT set prorationModeAndroid (or set it to -1)
+  ///
+  /// For UPGRADING/DOWNGRADING existing subscriptions (Android only):
+  /// - Set prorationModeAndroid to desired mode (1-5)
+  /// - MUST provide purchaseTokenAndroid from the existing subscription
+  /// - Get the token using getAvailablePurchases()
+  ///
+  /// Example for new subscription:
+  /// ```dart
+  /// await requestSubscription('premium_monthly');
+  /// ```
+  ///
+  /// Example for upgrade with proration:
+  /// ```dart
+  /// final purchases = await getAvailablePurchases();
+  /// final existingSub = purchases.firstWhere((p) => p.productId == 'basic_monthly');
+  /// await requestSubscription(
+  ///   'premium_monthly',
+  ///   prorationModeAndroid: AndroidProrationMode.immediateWithTimeProration.value,
+  ///   purchaseTokenAndroid: existingSub.purchaseToken,
+  /// );
+  /// ```
   Future<dynamic> requestSubscription(
     String productId, {
     int? prorationModeAndroid,
@@ -999,6 +1113,22 @@ class FlutterInappPurchase
     int? offerTokenIndex,
   }) async {
     if (_platform.isAndroid) {
+      // Validate that purchaseToken is provided when using proration mode
+      // Proration mode -1 means no proration (new subscription)
+      if (prorationModeAndroid != null &&
+          prorationModeAndroid != -1 &&
+          (purchaseTokenAndroid == null || purchaseTokenAndroid.isEmpty)) {
+        throw iap_types.PurchaseError(
+          code: iap_types.ErrorCode.eDeveloperError,
+          message:
+              'purchaseTokenAndroid is required when using proration mode (prorationModeAndroid: $prorationModeAndroid). '
+              'Proration modes are only for upgrading/downgrading EXISTING subscriptions. '
+              'For NEW subscriptions, do not set prorationModeAndroid or set it to -1. '
+              'To upgrade/downgrade, provide the purchaseToken from getAvailablePurchases().',
+          platform: iap_types.IapPlatform.android,
+        );
+      }
+
       return await _channel.invokeMethod('buyItemByType', <String, dynamic>{
         'type': TypeInApp.subs.name,
         'productId': productId,
@@ -1086,12 +1216,18 @@ class FlutterInappPurchase
         return;
       } else {
         if (purchase.isAcknowledgedAndroid == true) {
-          print(
-              '[FlutterInappPurchase] Android: Purchase already acknowledged');
+          if (kDebugMode) {
+            debugPrint(
+                '[FlutterInappPurchase] Android: Purchase already acknowledged');
+          }
           return;
         } else {
-          print(
-              '[FlutterInappPurchase] Android: Acknowledging purchase with token: ${purchase.purchaseToken}');
+          if (kDebugMode) {
+            final maskedToken = (purchase.purchaseToken ?? '')
+                .replaceAllMapped(RegExp(r'.(?=.{4})'), (m) => '*');
+            debugPrint(
+                '[FlutterInappPurchase] Android: Acknowledging purchase with token: $maskedToken');
+          }
           await _channel.invokeMethod('acknowledgePurchase', <String, dynamic>{
             'purchaseToken': purchase.purchaseToken,
           });

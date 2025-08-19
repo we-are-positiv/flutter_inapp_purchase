@@ -24,7 +24,13 @@ void main() {
               return true;
             case 'getSubscriptions':
               final args = methodCall.arguments;
-              final productIds = args is List ? args.cast<String>() : null;
+              final productIds = args is Map
+                  ? (args['productIds'] as Iterable?)
+                      ?.map((e) => e.toString())
+                      .toList()
+                  : args is Iterable
+                      ? args.map((e) => e.toString()).toList()
+                      : null;
               final allSubs = _getMockSubscriptions();
               final filteredSubs = productIds != null
                   ? allSubs

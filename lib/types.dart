@@ -179,7 +179,7 @@ class Product extends BaseProduct {
           : null,
       subscription: json['subscription'] != null
           ? SubscriptionInfo.fromJson(
-              json['subscription'] as Map<String, dynamic>,
+              Map<String, dynamic>.from(json['subscription'] as Map),
             )
           : null,
       introductoryPriceNumberOfPeriodsIOS:
@@ -411,7 +411,7 @@ class Subscription extends BaseProduct {
           : null,
       subscription: json['subscription'] != null
           ? SubscriptionInfo.fromJson(
-              json['subscription'] as Map<String, dynamic>,
+              Map<String, dynamic>.from(json['subscription'] as Map),
             )
           : null,
       introductoryPriceNumberOfPeriodsIOS:
@@ -645,8 +645,12 @@ class SubscriptionInfo {
   factory SubscriptionInfo.fromJson(Map<String, dynamic> json) {
     return SubscriptionInfo(
       subscriptionGroupId: json['subscriptionGroupId'] as String?,
-      subscriptionPeriod: json['subscriptionPeriod'] as Map<String, dynamic>?,
-      introductoryOffer: json['introductoryOffer'] as Map<String, dynamic>?,
+      subscriptionPeriod: json['subscriptionPeriod'] != null
+          ? Map<String, dynamic>.from(json['subscriptionPeriod'] as Map)
+          : null,
+      introductoryOffer: json['introductoryOffer'] != null
+          ? Map<String, dynamic>.from(json['introductoryOffer'] as Map)
+          : null,
       promotionalOffers: json['promotionalOffers'] as List<dynamic>?,
       introductoryPrice: json['introductoryPrice'] as String?,
     );
@@ -997,7 +1001,9 @@ class Purchase {
       ownershipTypeIOS: json['ownershipTypeIOS'] as String?,
       transactionReasonIOS: json['transactionReasonIOS'] as String?,
       reasonIOS: json['reasonIOS'] as String?,
-      offerIOS: json['offerIOS'] as Map<String, dynamic>?,
+      offerIOS: json['offerIOS'] != null
+          ? Map<String, dynamic>.from(json['offerIOS'] as Map)
+          : null,
       jwsRepresentationIOS: json['jwsRepresentationIOS'] as String?,
       // Android specific per OpenIAP spec
       signatureAndroid: json['signatureAndroid'] as String?,
@@ -1308,9 +1314,39 @@ class RequestPurchaseAndroid {
 }
 
 /// Android specific subscription request (OpenIAP compliant)
+///
+/// When upgrading/downgrading a subscription (using replacementModeAndroid),
+/// you MUST provide the purchaseTokenAndroid from the existing subscription.
+///
+/// Example:
+/// ```dart
+/// // Get existing subscription's purchase token
+/// final purchases = await FlutterInappPurchase.instance.getAvailablePurchases();
+/// final existingSubscription = purchases.firstWhere((p) => p.productId == 'current_subscription');
+///
+/// // Upgrade/downgrade with proration mode
+/// await FlutterInappPurchase.instance.requestPurchase(
+///   request: RequestPurchase(
+///     android: RequestSubscriptionAndroid(
+///       skus: ['new_subscription_id'],
+///       purchaseTokenAndroid: existingSubscription.purchaseToken, // Required!
+///       replacementModeAndroid: AndroidProrationMode.deferred.value,
+///       subscriptionOffers: [...],
+///     ),
+///   ),
+///   type: PurchaseType.subs,
+/// );
+/// ```
 class RequestSubscriptionAndroid extends RequestPurchaseAndroid {
+  /// The purchase token from the existing subscription that is being replaced.
+  /// REQUIRED when using replacementModeAndroid (proration mode).
   final String? purchaseTokenAndroid;
+
+  /// The proration mode for subscription replacement.
+  /// When set, purchaseTokenAndroid MUST be provided.
+  /// Use values from AndroidProrationMode class.
   final int? replacementModeAndroid;
+
   final List<SubscriptionOfferAndroid> subscriptionOffers;
 
   RequestSubscriptionAndroid({
@@ -1326,7 +1362,15 @@ class RequestSubscriptionAndroid extends RequestPurchaseAndroid {
           obfuscatedAccountIdAndroid: obfuscatedAccountIdAndroid,
           obfuscatedProfileIdAndroid: obfuscatedProfileIdAndroid,
           isOfferPersonalized: isOfferPersonalized,
-        );
+        ) {
+    // Add assertion for development time validation
+    assert(
+      replacementModeAndroid == null ||
+          replacementModeAndroid == -1 ||
+          (purchaseTokenAndroid != null && purchaseTokenAndroid!.isNotEmpty),
+      'purchaseTokenAndroid is required when using replacementModeAndroid (proration mode)',
+    );
+  }
 }
 
 /// Subscription offer for Android
@@ -1642,8 +1686,12 @@ class ValidationResult {
     return ValidationResult(
       isValid: json['isValid'] as bool? ?? false,
       errorMessage: json['errorMessage'] as String?,
-      receipt: json['receipt'] as Map<String, dynamic>?,
-      parsedReceipt: json['parsedReceipt'] as Map<String, dynamic>?,
+      receipt: json['receipt'] != null
+          ? Map<String, dynamic>.from(json['receipt'] as Map)
+          : null,
+      parsedReceipt: json['parsedReceipt'] != null
+          ? Map<String, dynamic>.from(json['parsedReceipt'] as Map)
+          : null,
       originalResponse: json['originalResponse'] as String?,
     );
   }
