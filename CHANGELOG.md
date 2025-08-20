@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 6.3.3
+
+### Bug Fixes
+
+- **Android Type Mapping**: Fixed Android-specific field mappings to match TypeScript/OpenIAP specifications
+  - Fixed Product parsing for `nameAndroid` and `oneTimePurchaseOfferDetailsAndroid` fields
+  - Fixed Purchase `dataAndroid` field mapping from native Android data
+  - Added proper platform checks for Android/iOS specific fields in toJson output
+  - Fixed subscription offer details structure to handle nested pricingPhases
+  - Fixed PricingPhase parsing for Android field names (formattedPrice, priceCurrencyCode, priceAmountMicros)
+
+### Code Quality
+
+- **Platform-Specific Field Segregation**: Enhanced platform checks across all type classes
+  - Added `_platform.isAndroid` and `_platform.isIOS` conditions for platform-specific fields
+  - Android-specific fields now only appear on Android platform
+  - iOS-specific fields now only appear on iOS platform
+  - Added comprehensive TODO comments for v6.4.0 deprecation cleanup
+
+### Documentation
+
+- **Release Notes**: Added proper version planning comments for deprecated field removal in v6.4.0
+
 ## 6.3.2
 
 ### Bug Fixes
@@ -382,7 +405,7 @@ Republishing since sourcode seems not merged correctly.
 
 ## 2.3.0
 
-- Bugfix IAPItem deserialization [#212](https://github.com/hyochan/flutter_inapp_purchase/pull/212)
+- Bugfix IapItem deserialization [#212](https://github.com/hyochan/flutter_inapp_purchase/pull/212)
 - Add introductoryPriceNumberIOS [#214](https://github.com/hyochan/flutter_inapp_purchase/pull/214)
 - Fix iOS promotional offers [#220](https://github.com/hyochan/flutter_inapp_purchase/pull/220)
 
@@ -544,7 +567,7 @@ Republishing since sourcode seems not merged correctly.
   - Handling of iOS method `paymentQueue:shouldAddStorePayment:forProduct:`
   - Has no effect on Android.
 - Fixed issue with method `buyProductWithoutFinishTransaction` for iOS, was not getting the productId.
-- Fixed issue with `toString` method of class `IAPItem`, was printing incorrect values.
+- Fixed issue with `toString` method of class `IapItem`, was printing incorrect values.
 - Fixes for #44. Unsafe getting `originalJson` when restoring item and `Android`.
 - Use dictionaryWithObjectsAndKeys in NSDictionary to fetch product values. This will prevent from NSInvalidArgumentException in ios which rarely occurs.
 - Fixed wrong npe in `android` when `getAvailablePurchases`.
@@ -617,7 +640,7 @@ Republishing since sourcode seems not merged correctly.
 
 ## 0.5.4
 
-- Fixed error parsing IAPItem.
+- Fixed error parsing IapItem.
 
 ## 0.5.3
 

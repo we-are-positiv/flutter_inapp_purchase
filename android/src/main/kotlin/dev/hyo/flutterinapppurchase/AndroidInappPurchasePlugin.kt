@@ -425,8 +425,15 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                     item.put("type", productDetails.productType)
                     item.put("title", productDetails.title)
                     item.put("displayName", productDetails.name)
+                    item.put("nameAndroid", productDetails.name)
                     item.put("description", productDetails.description)
                     item.put("platform", "android")
+                    
+                    // Debug logging
+                    Log.d("InappPurchase", "Product: ${productDetails.productId}")
+                    Log.d("InappPurchase", "Name: ${productDetails.name}")
+                    Log.d("InappPurchase", "Type: ${productDetails.productType}")
+                    Log.d("InappPurchase", "OneTimePurchaseOfferDetails: ${productDetails.oneTimePurchaseOfferDetails}")
                     
                     // Set currency and displayPrice based on product type
                     val currency = productDetails.oneTimePurchaseOfferDetails?.priceCurrencyCode
@@ -442,10 +449,14 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                     // One-time offer details have changed in 5.0
                     if (productDetails.oneTimePurchaseOfferDetails != null) {
                         item.put("introductoryPrice", productDetails.oneTimePurchaseOfferDetails!!.formattedPrice)
+                        // Also put the price here for consistency
+                        item.put("price", (productDetails.oneTimePurchaseOfferDetails!!.priceAmountMicros / 1000000f).toString())
                     }
 
                     if (productDetails.productType == BillingClient.ProductType.INAPP) {
                         val oneTimePurchaseOfferDetails = productDetails.oneTimePurchaseOfferDetails
+                        
+                        Log.d("InappPurchase", "INAPP product oneTimePurchaseOfferDetails is ${if (oneTimePurchaseOfferDetails != null) "available" else "null"}")
 
                         if (oneTimePurchaseOfferDetails != null) {
                             item.put("price", (oneTimePurchaseOfferDetails.priceAmountMicros / 1000000f).toString())
@@ -457,6 +468,20 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                             offerDetails.put("formattedPrice", oneTimePurchaseOfferDetails.formattedPrice)
                             offerDetails.put("priceAmountMicros", oneTimePurchaseOfferDetails.priceAmountMicros.toString())
                             item.put("oneTimePurchaseOfferDetails", offerDetails)
+                            item.put("oneTimePurchaseOfferDetailsAndroid", offerDetails)
+                            
+                            Log.d("InappPurchase", "Added oneTimePurchaseOfferDetailsAndroid: $offerDetails")
+                        } else {
+                            Log.d(TAG, "oneTimePurchaseOfferDetails is null for INAPP product")
+                            // Still expose display-only details without mutating numeric price
+                            if (currency != null && displayPrice != null) {
+                                val basicOfferDetails = JSONObject()
+                                basicOfferDetails.put("priceCurrencyCode", currency)
+                                basicOfferDetails.put("formattedPrice", displayPrice)
+                                basicOfferDetails.put("priceAmountMicros", JSONObject.NULL) // unknown
+                                item.put("oneTimePurchaseOfferDetailsAndroid", basicOfferDetails)
+                                Log.d(TAG, "Created basic oneTimePurchaseOfferDetailsAndroid: $basicOfferDetails")
+                            }
                         }
                     } else if (productDetails.productType == BillingClient.ProductType.SUBS) {
                         // These generalized values are derived from the first pricing object, mainly for backwards compatibility
@@ -477,7 +502,8 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                             for (offer in productDetails.subscriptionOfferDetails!!) {
                                 val offerItem = JSONObject()
                                 offerItem.put("basePlanId", offer.basePlanId)
-                                offerItem.put("offerId", offer.offerId)
+                                // offerId can be null for base plans without special offers
+                                offerItem.put("offerId", offer.offerId ?: JSONObject.NULL)
                                 offerItem.put("offerToken", offer.offerToken)
                                 offerItem.put("offerTags", JSONArray(offer.offerTags))
                                 
@@ -499,7 +525,11 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                                 subsOffers.put(offerItem)
                             }
                         }
-                        item.put("subscriptionOfferDetails", subsOffers)
+                        // Use Android suffix for platform-specific field
+                        item.put("subscriptionOfferDetailsAndroid", subsOffers)
+                        // TODO(v6.4.0): Remove deprecated subscriptionOfferDetails
+                        item.put("subscriptionOfferDetails", subsOffers) // Keep for backward compatibility
+                        Log.d("InappPurchase", "subscriptionOfferDetailsAndroid: $subsOffers")
                     }
 
                     items.put(item)
@@ -526,7 +556,9 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
             val obfuscatedAccountId = call.argument<String>("obfuscatedAccountId")
             val obfuscatedProfileId = call.argument<String>("obfuscatedProfileId")
             val productId = call.argument<String>("productId")
-            val prorationMode = call.argument<Int>("prorationMode")!!
+            // TODO(v6.4.0): Remove prorationMode parameter support
+            // Support both old and new parameter names for backward compatibility
+            val replacementMode = call.argument<Int>("replacementMode") ?: call.argument<Int>("prorationMode") ?: -1
             val purchaseToken = call.argument<String>("purchaseToken")
             val offerTokenIndex = call.argument<Int>("offerTokenIndex")
             
@@ -589,9 +621,9 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                 builder.setObfuscatedProfileId(obfuscatedProfileId)
             }
 
-            when (prorationMode) {
-                -1 -> {} //ignore - no proration mode specified
-                BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE -> {
+            when (replacementMode) {
+                -1 -> { /* ignore - no replacement mode specified */ }
+                2 -> { // CHARGE_PRORATED_PRICE
                     // For subscription replacement, purchaseToken is required
                     if (purchaseToken.isNullOrEmpty()) {
                         safeChannel.error(
@@ -608,12 +640,12 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                         safeChannel.error(
                             TAG,
                             "buyItemByType",
-                            "IMMEDIATE_AND_CHARGE_PRORATED_PRICE for proration mode only works in subscription purchase."
+                            "CHARGE_PRORATED_PRICE replacement mode only works with subscriptions."
                         )
                         return
                     }
                 }
-                1 -> { // IMMEDIATE_WITHOUT_PRORATION
+                3 -> { // WITHOUT_PRORATION
                     if (purchaseToken.isNullOrEmpty()) {
                         safeChannel.error(
                             TAG,
@@ -639,7 +671,7 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                         .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED)
                     builder.setSubscriptionUpdateParams(params.build())
                 }
-                2 -> { // IMMEDIATE_WITH_TIME_PRORATION
+                1 -> { // WITH_TIME_PRORATION
                     if (purchaseToken.isNullOrEmpty()) {
                         safeChannel.error(
                             TAG,
@@ -652,7 +684,7 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                         .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION)
                     builder.setSubscriptionUpdateParams(params.build())
                 }
-                5 -> { // IMMEDIATE_AND_CHARGE_FULL_PRICE
+                5 -> { // CHARGE_FULL_PRICE
                     if (purchaseToken.isNullOrEmpty()) {
                         safeChannel.error(
                             TAG,
@@ -666,12 +698,7 @@ class AndroidInappPurchasePlugin internal constructor() : MethodCallHandler,
                     builder.setSubscriptionUpdateParams(params.build())
                 }
                 else -> {
-                    // For any other proration mode, also require purchase token
-                    if (!purchaseToken.isNullOrEmpty()) {
-                        params.setOldPurchaseToken(purchaseToken)
-                            .setSubscriptionReplacementMode(BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.UNKNOWN_REPLACEMENT_MODE)
-                        builder.setSubscriptionUpdateParams(params.build())
-                    }
+                    // Unknown replacement mode: do not set subscription update params
                 }
             }
             if (activity != null) {

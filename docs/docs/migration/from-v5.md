@@ -57,7 +57,7 @@ Future<String> requestPurchase(String sku) async
 **After (v6.x):**
 
 ```dart
-Future<List<IAPItem>> getProducts(List<String> skus) async
+Future<List<IapItem>> getProducts(List<String> skus) async
 Future<void> requestPurchase(String sku) async
 ```
 
@@ -298,7 +298,7 @@ class _MyAppState extends State<MyApp> {
 class _MyAppState extends State<MyApp> {
   StreamSubscription? _purchaseUpdatedSubscription;
   StreamSubscription? _purchaseErrorSubscription;
-  List<IAPItem> _items = [];
+  List<IapItem> _items = [];
   List<PurchasedItem> _purchases = [];
 
   @override
@@ -336,7 +336,7 @@ class _MyAppState extends State<MyApp> {
     _getProduct();
   }
 
-  void _requestPurchase(IAPItem item) async {
+  void _requestPurchase(IapItem item) async {
     try {
       await FlutterInappPurchase.instance.requestPurchase(item.productId!);
     } catch (e) {
@@ -354,8 +354,8 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _getProduct() async {
     try {
-      List<IAPItem> items = await FlutterInappPurchase.instance
-          .requestProducts(skus: _kProductIds, type: 'inapp');
+      List<IapItem> items = await FlutterInappPurchase.instance
+          .getProducts(_kProductIds);
       setState(() {
         _items = items;
       });
