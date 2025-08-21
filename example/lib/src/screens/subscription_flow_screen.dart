@@ -18,12 +18,10 @@ class _SubscriptionFlowScreenState extends State<SubscriptionFlowScreen> {
   // Multiple subscription tiers for testing upgrades/downgrades
   // Replace these with your actual subscription IDs
   final List<String> subscriptionIds = [
-    'dev.hyo.martie.basic', // Basic tier
     'dev.hyo.martie.premium', // Premium tier
-    'dev.hyo.martie.pro', // Pro tier
   ];
 
-  List<IapItem> _subscriptions = [];
+  List<ProductCommon> _subscriptions = [];
   final Map<String, ProductCommon> _originalProducts = {};
   List<Purchase> _activeSubscriptions = [];
   Purchase? _currentSubscription;
@@ -96,7 +94,7 @@ class _SubscriptionFlowScreenState extends State<SubscriptionFlowScreen> {
         }
 
         // Handle the purchase - check multiple conditions
-        // purchaseState.purchased or purchaseStateAndroid == 1 or isAcknowledgedAndroid == false (new purchase)
+        // purchaseState.purchased or purchaseStateAndroid == AndroidPurchaseState.purchased or isAcknowledgedAndroid == false (new purchase)
         bool isPurchased = false;
 
         if (Platform.isAndroid) {
@@ -105,12 +103,13 @@ class _SubscriptionFlowScreenState extends State<SubscriptionFlowScreen> {
           bool condition2 = (purchase.isAcknowledgedAndroid == false &&
               purchase.purchaseToken != null &&
               purchase.purchaseToken!.isNotEmpty);
-          bool condition3 = purchase.purchaseStateAndroid == 1;
+          bool condition3 = purchase.purchaseStateAndroid ==
+              AndroidPurchaseState.purchased.value;
 
           debugPrint('  Android condition checks:');
           debugPrint('    purchaseState == purchased: $condition1');
           debugPrint('    unacknowledged with token: $condition2');
-          debugPrint('    purchaseStateAndroid == 1: $condition3');
+          debugPrint('    purchaseStateAndroid == purchased: $condition3');
 
           isPurchased = condition1 || condition2 || condition3;
           debugPrint('  Final isPurchased: $isPurchased');
@@ -171,7 +170,8 @@ class _SubscriptionFlowScreenState extends State<SubscriptionFlowScreen> {
           await _checkActiveSubscriptions();
           debugPrint('Subscriptions refreshed');
         } else if (purchase.purchaseState == PurchaseState.pending ||
-            purchase.purchaseStateAndroid == 0) {
+            purchase.purchaseStateAndroid ==
+                AndroidPurchaseState.unspecified.value) {
           // Pending
           setState(() {
             _purchaseResult = '⏳ Purchase pending: ${purchase.productId}';
@@ -264,63 +264,25 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
     setState(() => _isLoadingProducts = true);
 
     try {
-      // Use the new requestProducts method
-      final params = RequestProductsParams(
-        productIds: subscriptionIds,
-        type: PurchaseType.subs,
+      // Use requestProducts with Subscription type for type-safe list
+      final products = await _iap.requestProducts<Subscription>(
+        skus: subscriptionIds,
+        type: ProductType.subs,
       );
-
-      final products = await _iap.requestProducts(params);
 
       debugPrint('Loaded ${products.length} subscriptions');
 
       if (!mounted) return;
 
       setState(() {
-        _subscriptions = products.map((baseProduct) {
-          // Store the original ProductCommon for detailed view
-          final productKey = baseProduct.productId ?? baseProduct.id;
-          _originalProducts[productKey] = baseProduct;
+        // Store original products
+        _originalProducts.clear();
+        for (final product in products) {
+          final productKey = product.productId ?? product.id;
+          _originalProducts[productKey] = product;
+        }
 
-          // Convert ProductCommon to IapItem for compatibility
-          final itemMap = <String, dynamic>{
-            'productId': baseProduct.productId ?? baseProduct.id,
-            'price': baseProduct.price?.toString() ?? '0',
-            'currency': baseProduct.currency ?? '',
-            'localizedPrice':
-                baseProduct.localizedPrice ?? baseProduct.displayPrice,
-            'title': baseProduct.title ?? '',
-            'description': baseProduct.description ?? '',
-          };
-
-          // Add subscription-specific fields if available
-          if (baseProduct is Subscription) {
-            final subscription = baseProduct;
-            itemMap['subscriptionPeriodUnitIOS'] =
-                subscription.subscriptionPeriodUnitIOS;
-            itemMap['subscriptionPeriodNumberIOS'] =
-                subscription.subscriptionPeriodNumberIOS;
-            itemMap['introductoryPricePaymentModeIOS'] =
-                subscription.introductoryPricePaymentModeIOS;
-            itemMap['subscriptionGroupIdIOS'] =
-                subscription.subscriptionGroupIdIOS;
-            if (subscription.discountsIOS != null) {
-              itemMap['discountsIOS'] = subscription.discountsIOS!
-                  .map((d) => {
-                        'identifier': d.identifier,
-                        'type': d.type,
-                        'price': d.price,
-                        'localizedPrice': d.localizedPrice,
-                        'numberOfPeriods': d.numberOfPeriods,
-                        'subscriptionPeriod': d.subscriptionPeriod,
-                        'paymentMode': d.paymentMode,
-                      })
-                  .toList();
-            }
-          }
-
-          return IapItem.fromJSON(itemMap);
-        }).toList();
+        _subscriptions = products;
         _isLoadingProducts = false;
       });
     } catch (error) {
@@ -377,7 +339,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
     }
   }
 
-  Future<void> _purchaseSubscription(IapItem item,
+  Future<void> _purchaseSubscription(ProductCommon item,
       {bool isUpgrade = false}) async {
     if (_isProcessing) {
       debugPrint('⚠️ Already processing a purchase, ignoring');
@@ -397,8 +359,10 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
     try {
       // Check for Android offers
       SubscriptionOfferAndroid? selectedOffer;
-      if (Platform.isAndroid && item.subscriptionOffersAndroid != null) {
-        final offers = item.subscriptionOffersAndroid!;
+      final hasOffers =
+          item is Subscription && item.subscriptionOffersAndroid != null;
+      if (Platform.isAndroid && hasOffers) {
+        final offers = (item as Subscription).subscriptionOffersAndroid!;
         if (offers.isNotEmpty) {
           selectedOffer = offers.first;
           debugPrint('Using offer token: ${selectedOffer.offerToken}');
@@ -428,7 +392,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
 
           await _iap.requestPurchase(
             request: request,
-            type: PurchaseType.subs,
+            type: ProductType.subs,
           );
         } else {
           // This is a new subscription purchase
@@ -443,7 +407,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
 
           await _iap.requestPurchase(
             request: request,
-            type: PurchaseType.subs,
+            type: ProductType.subs,
           );
         }
       } else {
@@ -456,7 +420,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
 
         await _iap.requestPurchase(
           request: request,
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
       }
 
@@ -472,7 +436,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
   }
 
   // Test with fake/invalid token (should fail on native side)
-  Future<void> _testWrongProrationUsage(IapItem item) async {
+  Future<void> _testWrongProrationUsage(ProductCommon item) async {
     if (_isProcessing) return;
 
     setState(() {
@@ -492,7 +456,9 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
       final request = RequestPurchase(
         android: RequestSubscriptionAndroid(
           skus: [item.productId!],
-          subscriptionOffers: item.subscriptionOffersAndroid ?? [],
+          subscriptionOffers: item is Subscription
+              ? (item.subscriptionOffersAndroid ?? [])
+              : [],
           purchaseTokenAndroid:
               fakeToken, // Fake token that will fail on native side
           replacementModeAndroid: AndroidReplacementMode.deferred.value,
@@ -501,7 +467,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
 
       await _iap.requestPurchase(
         request: request,
-        type: PurchaseType.subs,
+        type: ProductType.subs,
       );
 
       // If we get here, the purchase was attempted
@@ -517,7 +483,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
   }
 
   // Test with empty purchaseToken (Issue #529)
-  Future<void> _testEmptyTokenProration(IapItem item) async {
+  Future<void> _testEmptyTokenProration(ProductCommon item) async {
     if (_isProcessing) return;
 
     setState(() {
@@ -537,7 +503,9 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
       final request = RequestPurchase(
         android: RequestSubscriptionAndroid(
           skus: [item.productId!],
-          subscriptionOffers: item.subscriptionOffersAndroid ?? [],
+          subscriptionOffers: item is Subscription
+              ? (item.subscriptionOffersAndroid ?? [])
+              : [],
           purchaseTokenAndroid: testToken, // Use test token to pass validation
           replacementModeAndroid: AndroidReplacementMode.deferred.value,
         ),
@@ -545,7 +513,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
 
       await _iap.requestPurchase(
         request: request,
-        type: PurchaseType.subs,
+        type: ProductType.subs,
       );
 
       debugPrint('Purchase request sent with test token');
@@ -597,7 +565,7 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
     }
   }
 
-  Widget _buildSubscriptionTier(IapItem subscription) {
+  Widget _buildSubscriptionTier(ProductCommon subscription) {
     final isCurrentSubscription =
         _currentSubscription?.productId == subscription.productId;
     // Note: canUpgrade logic removed - now always show proration options for testing
@@ -655,7 +623,9 @@ Has token: ${purchase.purchaseToken != null && purchase.purchaseToken!.isNotEmpt
                     ),
                   ),
                   Text(
-                    subscription.localizedPrice ?? subscription.price ?? '',
+                    subscription.localizedPrice ??
+                        subscription.price?.toString() ??
+                        '',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

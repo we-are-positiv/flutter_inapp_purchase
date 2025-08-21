@@ -24,8 +24,8 @@ class _SimpleStoreState extends State<SimpleStore> {
   StreamSubscription? _purchaseUpdatedSubscription;
   StreamSubscription? _purchaseErrorSubscription;
 
-  List<IapItem> _products = [];
-  List<IapItem> _subscriptions = [];
+  List<ProductCommon> _products = [];
+  List<ProductCommon> _subscriptions = [];
   List<PurchasedItem> _purchases = [];
 
   // Your product IDs from App Store Connect / Google Play Console
@@ -83,17 +83,17 @@ class _SimpleStoreState extends State<SimpleStore> {
   Future<void> _getProducts() async {
     try {
       // Get consumable products
-      List<IapItem> products =
+      List<ProductCommon> products =
           await FlutterInappPurchase.instance.requestProducts(
-            skus: _productIds,
-            type: 'inapp',
+            productIds: _productIds,
+            type: PurchaseType.inapp,
           );
 
       // Get subscriptions
-      List<IapItem> subscriptions =
+      List<ProductCommon> subscriptions =
           await FlutterInappPurchase.instance.requestProducts(
-            skus: _subscriptionIds,
-            type: 'subs',
+            productIds: _subscriptionIds,
+            type: PurchaseType.subs,
           );
 
       setState(() {
@@ -307,12 +307,12 @@ Fetch products using their IDs:
 
 ```dart
 // Regular products
-List<IapItem> products = await FlutterInappPurchase.instance
-    .requestProducts(skus: ['product_id_1', 'product_id_2'], type: 'inapp');
+List<ProductCommon> products = await FlutterInappPurchase.instance
+    .requestProducts(productIds: ['product_id_1', 'product_id_2'], type: PurchaseType.inapp);
 
 // Subscriptions
-List<IapItem> subscriptions = await FlutterInappPurchase.instance
-    .requestProducts(skus: ['subscription_id_1', 'subscription_id_2'], type: 'subs');
+List<ProductCommon> subscriptions = await FlutterInappPurchase.instance
+    .requestProducts(productIds: ['subscription_id_1', 'subscription_id_2'], type: PurchaseType.subs);
 ```
 
 ### 3. Purchase Flow

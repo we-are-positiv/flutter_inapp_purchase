@@ -17,24 +17,19 @@
 
 ## 📦 Installation
 
+### Latest Version (v6.4.0 - Current)
+
 ```yaml
 dependencies:
-  flutter_inapp_purchase: ^6.3.1
+  flutter_inapp_purchase: ^6.4.0
 ```
 
-## 🔄 What's New in 6.3.1
+### Previous Stable Version (v6.3.x)
 
-### Bug Fixes
-
-- Fixed Android subscription loading type casting error
-- Removed deprecated test product IDs
-- Improved type safety for native platform data
-
-## 🔄 What's New in 6.3.0
-
-**📝 [Read the full release blog post](docs/blog/2025-08-19-6.3.0.release.md)**
-
-Version 6.3.0 brings critical bug fixes, enhanced OpenIAP compliance, and improved test coverage while maintaining full backward compatibility.
+```yaml
+dependencies:
+  flutter_inapp_purchase: ^6.3.3
+```
 
 ## 🔧 Quick Start
 
@@ -49,12 +44,10 @@ final iap = FlutterInappPurchase();
 // Initialize connection
 await iap.initConnection();
 
-// Get products (using the new unified API)
+// Get products
 final products = await iap.requestProducts(
-  RequestProductsParams(
-    productIds: ['product_id'],
-    type: PurchaseType.inapp,
-  ),
+  skus: ['product_id'],
+  type: PurchaseType.inapp,
 );
 
 // Request purchase

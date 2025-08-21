@@ -6,9 +6,6 @@ enum Store { none, playStore, amazon, appStore }
 /// Platform detection enum
 enum IapPlatform { ios, android }
 
-/// Purchase type enum
-enum PurchaseType { inapp, subs }
-
 /// Error codes (OpenIAP compliant)
 enum ErrorCode {
   // Common error codes per OpenIAP spec
@@ -116,6 +113,23 @@ enum ReplaceMode {
 
 /// A enumeration of in-app purchase types for Android
 enum TypeInApp { inapp, subs }
+
+/// Android purchase states from Google Play Billing
+enum AndroidPurchaseState {
+  unspecified(0), // UNSPECIFIED_STATE
+  purchased(1), // PURCHASED
+  pending(2); // PENDING
+
+  final int value;
+  const AndroidPurchaseState(this.value);
+
+  static AndroidPurchaseState fromValue(int value) {
+    return AndroidPurchaseState.values.firstWhere(
+      (state) => state.value == value,
+      orElse: () => AndroidPurchaseState.unspecified,
+    );
+  }
+}
 
 /// Android billing response codes
 enum ResponseCodeAndroid {

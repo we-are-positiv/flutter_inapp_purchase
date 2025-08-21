@@ -115,10 +115,8 @@ void main() {
         await plugin.initConnection();
 
         final subscriptions = await plugin.requestProducts(
-          RequestProductsParams(
-            productIds: ['monthly_sub', 'yearly_sub'],
-            type: PurchaseType.subs,
-          ),
+          skus: ['monthly_sub', 'yearly_sub'],
+          type: ProductType.subs,
         );
 
         expect(subscriptions.length, 2);
@@ -135,10 +133,8 @@ void main() {
         await plugin.initConnection();
 
         final subscriptions = await plugin.requestProducts(
-          RequestProductsParams(
-            productIds: ['ios_monthly_sub'],
-            type: PurchaseType.subs,
-          ),
+          skus: ['ios_monthly_sub'],
+          type: ProductType.subs,
         );
 
         expect(subscriptions.length, 1);
@@ -156,10 +152,8 @@ void main() {
         await plugin.initConnection();
 
         final subscriptions = await plugin.requestProducts(
-          RequestProductsParams(
-            productIds: ['android_sub_with_offers'],
-            type: PurchaseType.subs,
-          ),
+          skus: ['android_sub_with_offers'],
+          type: ProductType.subs,
         );
 
         expect(subscriptions.length, 1);
@@ -256,7 +250,7 @@ void main() {
           request: RequestPurchase(
             android: RequestPurchaseAndroid(skus: ['monthly_sub']),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'buyItemByType');
@@ -281,7 +275,7 @@ void main() {
               ],
             ),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'buyItemByType');
@@ -306,7 +300,7 @@ void main() {
               subscriptionOffers: [],
             ),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'buyItemByType');
@@ -328,7 +322,7 @@ void main() {
           request: RequestPurchase(
             ios: RequestPurchaseIOS(sku: 'ios_monthly_sub'),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'buyProduct');
@@ -354,7 +348,7 @@ void main() {
               ),
             ),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'requestProductWithOfferIOS');

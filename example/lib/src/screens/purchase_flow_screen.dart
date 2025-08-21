@@ -21,7 +21,7 @@ class _PurchaseFlowScreenState extends State<PurchaseFlowScreen> {
     'dev.hyo.martie.30bulbs',
   ];
 
-  List<IapItem> _products = [];
+  List<ProductCommon> _products = [];
   final Map<String, ProductCommon> _originalProducts =
       {}; // Store original products for detail view
   bool _isProcessing = false;
@@ -148,12 +148,14 @@ class _PurchaseFlowScreenState extends State<PurchaseFlowScreen> {
       bool condition2 = (purchase.isAcknowledgedAndroid == false &&
           purchase.purchaseToken != null &&
           purchase.purchaseToken!.isNotEmpty);
-      bool condition3 = purchase.purchaseStateAndroid == 1;
+      bool condition3 =
+          purchase.purchaseStateAndroid == AndroidPurchaseState.purchased.value;
 
       debugPrint('  Android condition checks:');
       debugPrint('    purchaseState == purchased: $condition1');
       debugPrint('    unacknowledged with token: $condition2');
-      debugPrint('    purchaseStateAndroid == 1: $condition3');
+      debugPrint(
+          '    purchaseStateAndroid == AndroidPurchaseState.purchased: $condition3');
 
       isPurchased = condition1 || condition2 || condition3;
       debugPrint('  Final isPurchased: $isPurchased');
@@ -318,12 +320,10 @@ Platform: ${error.platform}
 
     try {
       debugPrint('🔍 Loading products for IDs: ${productIds.join(", ")}');
-      // Use requestProducts instead of deprecated getProducts
-      final products = await _iap.requestProducts(
-        RequestProductsParams(
-          productIds: productIds,
-          type: PurchaseType.inapp,
-        ),
+      // Use requestProducts with Product type for type-safe list
+      final products = await _iap.requestProducts<Product>(
+        skus: productIds,
+        type: ProductType.inapp,
       );
 
       debugPrint(
@@ -332,33 +332,19 @@ Platform: ${error.platform}
       // Clear and store original products
       _originalProducts.clear();
 
-      // Convert ProductCommon to IapItem for compatibility
-      final items = products.map((product) {
-        // Store original product - use id as key with null safety
+      // Store original products
+      for (final product in products) {
         final productKey = product.productId ?? product.id;
         _originalProducts[productKey] = product;
 
-        // Cast to Product for more detailed info if available
-        if (product is Product) {
-          debugPrint('Product: ${product.id} - ${product.title ?? 'No title'}');
-          debugPrint('  Price: ${product.price ?? 'No price'}');
-          debugPrint('  Currency: ${product.currency ?? 'No currency'}');
-          debugPrint(
-              '  Description: ${product.description ?? 'No description'}');
-        }
-
-        return IapItem.fromJSON({
-          'productId': product.productId ?? product.id,
-          'title': product.title ?? '',
-          'description': product.description ?? '',
-          'price': product.price?.toString() ?? '0',
-          'localizedPrice': product.localizedPrice ?? product.displayPrice,
-          'currency': product.currency ?? '',
-        });
-      }).toList();
+        debugPrint('Product: ${product.id} - ${product.title ?? 'No title'}');
+        debugPrint('  Price: ${product.price ?? 'No price'}');
+        debugPrint('  Currency: ${product.currency ?? 'No currency'}');
+        debugPrint('  Description: ${product.description ?? 'No description'}');
+      }
 
       setState(() {
-        _products = items;
+        _products = products;
       });
     } catch (e) {
       debugPrint('Error loading products: $e');
@@ -379,23 +365,18 @@ Platform: ${error.platform}
       debugPrint('Requesting purchase...');
       debugPrint('Product ID: $productId');
 
-      // Log the actual request being sent
-      final request = RequestPurchase(
-        ios: RequestPurchaseIOS(
-          sku: productId,
-        ),
-        android: RequestPurchaseAndroid(
-          skus: [productId],
-        ),
+      // Use the new DSL-like builder pattern for purchase request
+      // This provides better type safety and cleaner API than the old approach
+      await _iap.requestPurchaseWithBuilder(
+        build: (r) => r
+          ..type = ProductType.inapp
+          ..withIOS((i) => i
+            ..sku = productId
+            ..quantity = 1) // Optional: specify quantity for iOS
+          ..withAndroid(
+              (a) => a..skus = [productId]), // Android uses array of SKUs
       );
 
-      debugPrint(
-          'Request details: Android SKUs: ${request.android?.skus}, iOS SKU: ${request.ios?.sku}');
-
-      await _iap.requestPurchase(
-        request: request,
-        type: PurchaseType.inapp,
-      );
       debugPrint('✅ Purchase request sent successfully');
       // Note: The actual purchase result will come through the purchaseUpdatedListener
     } catch (error) {
