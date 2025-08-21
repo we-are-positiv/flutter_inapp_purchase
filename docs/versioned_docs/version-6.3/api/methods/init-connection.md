@@ -38,6 +38,7 @@ A `Future` that completes when the connection is established.
 - Establishes connection to Google Play services
 - Sets up purchase update listeners
 
+```dart
 void _setupListeners() {
   // Listen to purchase updates
   _iap.purchaseUpdatedListener.listen((purchase) {
@@ -53,6 +54,7 @@ void _setupListeners() {
     }
   });
 }
+```
 
 ## Best Practices
 

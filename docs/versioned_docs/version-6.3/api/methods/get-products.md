@@ -13,10 +13,12 @@ The `requestProducts()` method fetches product information for the specified pro
 
 ## Signature
 
+```dart
 Future<List<IapItem>> requestProducts({
   required List<String> productIds,
   PurchaseType type = PurchaseType.inapp,
 })
+```
 
 ## Parameters
 
