@@ -6,9 +6,6 @@ enum Store { none, playStore, amazon, appStore }
 /// Platform detection enum
 enum IapPlatform { ios, android }
 
-/// Purchase type enum
-enum PurchaseType { inapp, subs }
-
 /// Error codes (OpenIAP compliant)
 enum ErrorCode {
   // Common error codes per OpenIAP spec
@@ -96,13 +93,13 @@ enum OfferType { introductory, promotional, code, winBack }
 /// Billing client state
 enum BillingClientState { disconnected, connecting, connected, closed }
 
-/// Proration mode (Android)
-enum ProrationMode {
-  immediateWithTimeProration,
-  immediateAndChargeProratedPrice,
-  immediateWithoutProration,
+/// Replacement mode (Android)
+enum ReplacementMode {
+  withTimeProration,
+  chargeProratedPrice,
+  withoutProration,
   deferred,
-  immediateAndChargeFullPrice,
+  chargeFullPrice,
 }
 
 /// Replace mode (Android)
@@ -116,6 +113,23 @@ enum ReplaceMode {
 
 /// A enumeration of in-app purchase types for Android
 enum TypeInApp { inapp, subs }
+
+/// Android purchase states from Google Play Billing
+enum AndroidPurchaseState {
+  unspecified(0), // UNSPECIFIED_STATE
+  purchased(1), // PURCHASED
+  pending(2); // PENDING
+
+  final int value;
+  const AndroidPurchaseState(this.value);
+
+  static AndroidPurchaseState fromValue(int value) {
+    return AndroidPurchaseState.values.firstWhere(
+      (state) => state.value == value,
+      orElse: () => AndroidPurchaseState.unspecified,
+    );
+  }
+}
 
 /// Android billing response codes
 enum ResponseCodeAndroid {
@@ -134,15 +148,46 @@ enum ResponseCodeAndroid {
 /// See also https://developer.android.com/reference/com/android/billingclient/api/Purchase.PurchaseState
 enum PurchaseState { pending, purchased, unspecified }
 
-/// Android Proration Mode
-enum AndroidProrationMode {
-  unknownSubscriptionUpgradeDowngradePolicy(0),
-  immediateWithTimeProration(1),
-  immediateAndChargeProratedPrice(2),
-  immediateWithoutProration(3),
+/// Android Replacement Mode (formerly Proration Mode)
+///
+/// IMPORTANT: Replacement modes are ONLY for upgrading/downgrading EXISTING subscriptions.
+/// For NEW subscriptions, do NOT use any replacement mode.
+///
+/// To use replacement mode:
+/// 1. User must have an active subscription
+/// 2. You must provide the purchaseToken from the existing subscription
+/// 3. Get the token using getAvailablePurchases()
+///
+/// Example:
+/// ```dart
+/// // First, check for existing subscription
+/// final purchases = await FlutterInappPurchase.instance.getAvailablePurchases();
+/// if (purchases.isEmpty) {
+///   // User has no subscription - purchase new one WITHOUT replacement mode
+///   await FlutterInappPurchase.instance.requestSubscription('premium_monthly');
+/// } else {
+///   // User has subscription - can upgrade/downgrade WITH replacement mode
+///   final existingSub = purchases.first;
+///   await FlutterInappPurchase.instance.requestSubscription(
+///     'premium_yearly',
+///     replacementModeAndroid: AndroidReplacementMode.withTimeProration.value,
+///     purchaseTokenAndroid: existingSub.purchaseToken,
+///   );
+/// }
+/// ```
+enum AndroidReplacementMode {
+  unknownReplacementMode(0),
+  withTimeProration(1),
+  chargeProratedPrice(2),
+  withoutProration(3),
   deferred(4),
-  immediateAndChargeFullPrice(5);
+  chargeFullPrice(5);
 
   final int value;
-  const AndroidProrationMode(this.value);
+  const AndroidReplacementMode(this.value);
 }
+
+// TODO(v6.4.0): Remove deprecated AndroidProrationMode typedef
+/// @deprecated Use AndroidReplacementMode instead - will be removed in v6.4.0
+@Deprecated('Use AndroidReplacementMode instead - will be removed in v6.4.0')
+typedef AndroidProrationMode = AndroidReplacementMode;

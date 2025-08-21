@@ -68,7 +68,7 @@ Class representing a non-subscription product.
 class Product extends BaseProduct {
   final String type;
   final bool? isFamilyShareable;
-  
+
   Product({
     required String productId,
     required String price,
@@ -195,61 +195,27 @@ class PricingPhase {
 - `billingCycleCount` - Number of billing cycles
 - `billingPeriod` - ISO 8601 duration
 
-## RequestProductsParams
-
-Parameters for requesting products from the store.
-
-```dart
-class RequestProductsParams {
-  final List<String> skus;
-  final PurchaseType type;
-  
-  RequestProductsParams({
-    required this.skus,
-    required this.type,
-  });
-}
-```
-
-### Usage
-
-```dart
-// Request regular products
-final products = await iap.requestProducts(
-  RequestProductsParams(
-    skus: ['premium', 'remove_ads'],
-    type: PurchaseType.inapp,
-  ),
-);
-
-// Request subscriptions
-final subscriptions = await iap.requestProducts(
-  RequestProductsParams(
-    skus: ['monthly', 'yearly'],
-    type: PurchaseType.subs,
-  ),
-);
-```
-
 ## Platform-Specific Considerations
 
 ### iOS
+
 - Uses `subscriptionPeriodUnitIOS` and `subscriptionPeriodNumberIOS`
 - Supports subscription groups and family sharing
 - Introductory prices are automatically applied
 
 ### Android
+
 - Uses ISO 8601 duration format for periods
 - Supports multiple offers per subscription
 - Each offer can have multiple pricing phases
 
 ## Type Conversion
 
-Converting between legacy `IAPItem` and new types:
+Converting between legacy `IapItem` and new types:
 
 ```dart
-// Convert IAPItem to Product/Subscription
-BaseProduct convertToProduct(IAPItem item, PurchaseType type) {
+// Convert IapItem to Product/Subscription
+BaseProduct convertToProduct(IapItem item, PurchaseType type) {
   if (type == PurchaseType.subs) {
     return Subscription(
       productId: item.productId ?? '',
@@ -261,8 +227,8 @@ BaseProduct convertToProduct(IAPItem item, PurchaseType type) {
       platform: Platform.isIOS ? IAPPlatform.ios : IAPPlatform.android,
       subscriptionPeriodAndroid: item.subscriptionPeriodAndroid,
       subscriptionPeriodUnitIOS: item.subscriptionPeriodUnitIOS,
-      subscriptionPeriodNumberIOS: item.subscriptionPeriodNumberIOS != null 
-          ? int.tryParse(item.subscriptionPeriodNumberIOS!) 
+      subscriptionPeriodNumberIOS: item.subscriptionPeriodNumberIOS != null
+          ? int.tryParse(item.subscriptionPeriodNumberIOS!)
           : null,
     );
   } else {

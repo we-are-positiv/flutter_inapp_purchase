@@ -15,46 +15,47 @@ The main class providing all IAP functionality:
 ```dart
 class FlutterInappPurchase {
   static FlutterInappPurchase get instance => _instance;
-  
+
   // Connection management
   Future<String?> initialize();
   Future<String?> endConnection();
-  
+
   // Product management
-  Future<List<IAPItem>> requestProducts({
+  Future<List<IapItem>> requestProducts({
     required List<String> skus,
-    String type = 'inapp', // 'inapp' or 'subs'
+    PurchaseType type = PurchaseType.inapp,
   });
-  
+
   // Purchase management
   Future<void> requestPurchase(String sku);
   Future<void> requestSubscription(String sku);
   Future<List<PurchasedItem>?> getAvailablePurchases();
-  
+
   // Transaction management
-  Future<String?> finishTransaction(PurchasedItem purchase);
-  Future<String?> acknowledgePurchase({required String purchaseToken});
-  Future<String?> consumePurchase({required String purchaseToken});
-  
-  // Streams
-  static Stream<PurchasedItem?> get purchaseUpdated;
-  static Stream<PurchasedItem?> get purchaseError;
+  Future<String?> finishTransaction(Purchase purchase, {bool isConsumable = false});
+  // Android helpers
+  Future<String?> acknowledgePurchaseAndroid({required String purchaseToken});
+  Future<String?> consumePurchaseAndroid({required String purchaseToken});
+
+  // Streams (expo-iap compatible)
+  Stream<Purchase> get purchaseUpdatedListener;
+  Stream<PurchaseError> get purchaseErrorListener;
 }
 ```
 
-### IAPItem
+### IapItem
 
 Represents a product or subscription:
 
 ```dart
-class IAPItem {
+class IapItem {
   final String? productId;
   final String? price;
   final String? currency;
   final String? localizedPrice;
   final String? title;
   final String? description;
-  
+
   // iOS specific fields
   final String? introductoryPrice;
   final String? introductoryPricePaymentModeIOS;
@@ -62,7 +63,7 @@ class IAPItem {
   final String? introductoryPriceSubscriptionPeriodIOS;
   final String? subscriptionPeriodNumberIOS;
   final String? subscriptionPeriodUnitIOS;
-  
+
   // Android specific fields
   final String? signatureAndroid;
   final String? originalJsonAndroid;
@@ -82,13 +83,13 @@ class PurchasedItem {
   final DateTime? transactionDate;
   final String? transactionReceipt;
   final String? purchaseToken;
-  
+
   // iOS specific
   final String? originalTransactionDateIOS;
   final String? originalTransactionIdentifierIOS;
-  
+
   // Android specific
-  final String? purchaseTokenAndroid;
+  final String? purchaseTokenAndroid;  // [DEPRECATED] Use purchaseToken instead
   final String? developerPayloadAndroid;
   final bool? isAcknowledgedAndroid;
   final int? purchaseStateAndroid;
@@ -101,14 +102,17 @@ class PurchasedItem {
 ### Connection Management
 
 #### initialize()
+
 ```dart
 Future<String?> initialize() async
 ```
+
 Establishes connection to the store. Must be called before any other methods.
 
 **Returns**: Connection result message or error
 
 **Example**:
+
 ```dart
 String? result = await FlutterInappPurchase.instance.initialize();
 if (result == 'Billing is unavailable') {
@@ -119,45 +123,53 @@ if (result == 'Billing is unavailable') {
 ### Product Management
 
 #### requestProducts()
+
 ```dart
-Future<List<IAPItem>> requestProducts({
+Future<List<IapItem>> requestProducts({
   required List<String> skus,
-  String type = 'inapp',
+  PurchaseType type = PurchaseType.inapp,
 }) async
 ```
+
 Fetches product or subscription information for the given SKUs.
 
 **Parameters**:
+
 - `skus`: List of product identifiers
-- `type`: Product type - `'inapp'` for regular products or `'subs'` for subscriptions
+- `type`: Product type - `PurchaseType.inapp` (regular) or `PurchaseType.subs` (subscriptions)
 
 **Returns**: List of available products or subscriptions
 
 **Examples**:
+
 ```dart
 // Get regular products (consumables and non-consumables)
-List<IAPItem> products = await FlutterInappPurchase.instance
-    .requestProducts(skus: ['coin_pack_100', 'remove_ads'], type: 'inapp');
+List<IapItem> products = await FlutterInappPurchase.instance
+    .requestProducts(skus: ['coin_pack_100', 'remove_ads'], type: PurchaseType.inapp);
 
 // Get subscriptions
-List<IAPItem> subscriptions = await FlutterInappPurchase.instance
-    .requestProducts(skus: ['premium_monthly', 'premium_yearly'], type: 'subs');
+List<IapItem> subscriptions = await FlutterInappPurchase.instance
+    .requestProducts(skus: ['premium_monthly', 'premium_yearly'], type: PurchaseType.subs);
 ```
 
 ### Purchase Management
 
 #### requestPurchase()
+
 ```dart
 Future<void> requestPurchase(String sku) async
 ```
+
 Initiates a purchase for the specified product.
 
 **Parameters**:
+
 - `sku`: Product identifier to purchase
 
 **Throws**: `PlatformException` if purchase fails
 
 **Example**:
+
 ```dart
 try {
   await FlutterInappPurchase.instance.requestPurchase('remove_ads');
@@ -168,9 +180,11 @@ try {
 ```
 
 #### getAvailablePurchases()
+
 ```dart
 Future<List<PurchasedItem>?> getAvailablePurchases() async
 ```
+
 Retrieves all available purchases (including pending and non-consumed).
 
 **Returns**: List of purchases or null
@@ -178,67 +192,80 @@ Retrieves all available purchases (including pending and non-consumed).
 ### Transaction Management
 
 #### finishTransaction()
+
 ```dart
-Future<String?> finishTransaction(PurchasedItem purchase) async
+Future<String?> finishTransaction(Purchase purchase, {bool isConsumable = false}) async
 ```
-**iOS only**: Completes a transaction. Must be called for all purchases.
+
+Completes a transaction and removes it from the queue.
 
 **Parameters**:
+
 - `purchase`: The purchase to finish
 
 **Returns**: Result message or null
 
-#### consumePurchase()
+#### consumePurchaseAndroid()
+
 ```dart
-Future<String?> consumePurchase({required String purchaseToken}) async
+Future<String?> consumePurchaseAndroid({required String purchaseToken}) async
 ```
+
 **Android only**: Consumes a purchase, allowing it to be purchased again.
 
 **Parameters**:
+
 - `purchaseToken`: The purchase token from the purchase
 
 **Returns**: Result message or null
 
-#### acknowledgePurchase()
+#### acknowledgePurchaseAndroid()
+
 ```dart
-Future<String?> acknowledgePurchase({required String purchaseToken}) async
+Future<String?> acknowledgePurchaseAndroid({required String purchaseToken}) async
 ```
+
 **Android only**: Acknowledges a non-consumable purchase.
 
 **Parameters**:
+
 - `purchaseToken`: The purchase token from the purchase
 
 **Returns**: Result message or null
 
 ## Streams
 
-### purchaseUpdated
+### purchaseUpdatedListener
+
 ```dart
-static Stream<PurchasedItem?> get purchaseUpdated
+Stream<Purchase> get purchaseUpdatedListener
 ```
-Stream of successful purchase updates.
+
+Stream of successful purchase updates (expo-iap compatible).
 
 **Example**:
+
 ```dart
-FlutterInappPurchase.purchaseUpdated.listen((item) {
-  if (item != null) {
-    // Handle successful purchase
-    print('Purchased: ${item.productId}');
-  }
+FlutterInappPurchase.instance.purchaseUpdatedListener.listen((purchase) {
+  // Handle successful purchase
+  print('Purchased: ${purchase.productId}');
 });
 ```
 
-### purchaseError
+### purchaseErrorListener
+
 ```dart
-static Stream<PurchasedItem?> get purchaseError
+Stream<PurchaseError> get purchaseErrorListener
 ```
-Stream of purchase errors.
+
+Stream of purchase errors (expo-iap compatible).
 
 **Example**:
+
 ```dart
-FlutterInappPurchase.purchaseError.listen((item) {
+FlutterInappPurchase.instance.purchaseErrorListener.listen((error) {
   // Handle purchase error
-  print('Purchase failed: ${item?.productId}');
+  print('Purchase failed: ${error.message}');
 });
 ```
 
@@ -260,7 +287,7 @@ Future<Map<String, dynamic>?> validateReceiptIos({
 Future<String?> getPromotedProduct() async
 
 // Request product info
-Future<List<IAPItem>> getProductsIOS(List<String> skus) async
+Future<List<IapItem>> getProductsIOS(List<String> skus) async
 ```
 
 ### Android Specific
@@ -301,19 +328,19 @@ class IAPError {
 await FlutterInappPurchase.instance.initialize();
 
 // 2. Set up listeners
-FlutterInappPurchase.purchaseUpdated.listen(handlePurchase);
+FlutterInappPurchase.instance.purchaseUpdatedListener.listen(handlePurchase);
 
 // 3. Load products
 var products = await FlutterInappPurchase.instance.requestProducts(
-  skus: productIds, 
-  type: 'inapp'
+  skus: productIds,
+  type: PurchaseType.inapp
 );
 
 // 4. Request purchase
 await FlutterInappPurchase.instance.requestPurchase(productId);
 
 // 5. Handle in listener
-void handlePurchase(PurchasedItem? item) {
+void handlePurchase(Purchase purchase) {
   // Verify, deliver, and finish
 }
 ```
@@ -323,8 +350,8 @@ void handlePurchase(PurchasedItem? item) {
 ```dart
 // 1. Load subscriptions
 var subs = await FlutterInappPurchase.instance.requestProducts(
-  skus: subIds, 
-  type: 'subs'
+  skus: subIds,
+  type: PurchaseType.subs
 );
 
 // 2. Request subscription

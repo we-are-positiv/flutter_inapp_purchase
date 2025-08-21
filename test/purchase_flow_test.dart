@@ -13,66 +13,72 @@ void main() {
     setUp(() {
       methodChannelLog.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        const MethodChannel('flutter_inapp'),
-        (MethodCall methodCall) async {
-          methodChannelLog.add(methodCall);
-          switch (methodCall.method) {
-            case 'initConnection':
-              return true;
-            case 'endConnection':
-              return true;
-            case 'getProducts':
-            case 'getSubscriptions':
-              final args = methodCall.arguments;
-              final productIds = args is List ? args.cast<String>() : null;
-              final allProducts = _getMockProducts();
-              final filteredProducts = productIds != null
-                  ? allProducts
-                      .where((product) =>
-                          productIds.contains(product['productId']))
-                      .toList()
-                  : allProducts;
-              return filteredProducts
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            case 'buyItemByType':
-              return _getMockPurchase(methodCall.arguments);
-            case 'buyProduct':
-              return _getMockPurchase(methodCall.arguments);
-            case 'requestSubscription':
-              return _getMockSubscription(methodCall.arguments);
-            case 'finishTransaction':
-              return 'finished';
-            case 'consumeProduct':
-              return <String, dynamic>{'purchaseToken': methodCall.arguments};
-            case 'acknowledgePurchase':
-              return <String, dynamic>{'purchaseToken': methodCall.arguments};
-            case 'getAvailablePurchases':
-              return _getMockAvailablePurchases()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            case 'getAvailableItems':
-              return _getMockAvailablePurchases()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            case 'restorePurchases':
-              return _getMockAvailablePurchases()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            case 'getPurchaseHistory':
-              return _getMockPurchaseHistory()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            case 'getAvailableItemsByType':
-              return _getMockAvailablePurchases()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList();
-            default:
-              return null;
-          }
-        },
-      );
+          .setMockMethodCallHandler(const MethodChannel('flutter_inapp'), (
+        MethodCall methodCall,
+      ) async {
+        methodChannelLog.add(methodCall);
+        switch (methodCall.method) {
+          case 'initConnection':
+            return true;
+          case 'endConnection':
+            return true;
+          case 'getProducts':
+          case 'getSubscriptions':
+            final args = methodCall.arguments;
+            final productIds = args is Map
+                ? (args['productIds'] as Iterable?)
+                    ?.map((e) => e.toString())
+                    .toList()
+                : args is Iterable
+                    ? args.map((e) => e.toString()).toList()
+                    : null;
+            final allProducts = _getMockProducts();
+            final filteredProducts = productIds != null
+                ? allProducts
+                    .where(
+                      (product) => productIds.contains(product['productId']),
+                    )
+                    .toList()
+                : allProducts;
+            return filteredProducts
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          case 'buyItemByType':
+            return _getMockPurchase(methodCall.arguments);
+          case 'buyProduct':
+            return _getMockPurchase(methodCall.arguments);
+          case 'requestSubscription':
+            return _getMockSubscription(methodCall.arguments);
+          case 'finishTransaction':
+            return 'finished';
+          case 'consumeProduct':
+            return <String, dynamic>{'purchaseToken': methodCall.arguments};
+          case 'acknowledgePurchase':
+            return <String, dynamic>{'purchaseToken': methodCall.arguments};
+          case 'getAvailablePurchases':
+            return _getMockAvailablePurchases()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          case 'getAvailableItems':
+            return _getMockAvailablePurchases()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          case 'restorePurchases':
+            return _getMockAvailablePurchases()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          case 'getPurchaseHistory':
+            return _getMockPurchaseHistory()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          case 'getAvailableItemsByType':
+            return _getMockAvailablePurchases()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList();
+          default:
+            return null;
+        }
+      });
     });
 
     tearDown(() {
@@ -107,11 +113,13 @@ void main() {
 
         expect(
           () => plugin.initConnection(),
-          throwsA(isA<PurchaseError>().having(
-            (e) => e.code,
-            'error code',
-            ErrorCode.eAlreadyInitialized,
-          )),
+          throwsA(
+            isA<PurchaseError>().having(
+              (e) => e.code,
+              'error code',
+              ErrorCode.eAlreadyInitialized,
+            ),
+          ),
         );
       });
 
@@ -142,15 +150,13 @@ void main() {
         await plugin.initConnection();
 
         final products = await plugin.requestProducts(
-          RequestProductsParams(
-            productIds: ['product1', 'product2'],
-            type: PurchaseType.inapp,
-          ),
+          skus: ['product1', 'product2'],
+          type: ProductType.inapp,
         );
 
         expect(products.length, 2);
         expect(products[0].productId, 'product1');
-        expect(products[0].price, '\$1.99');
+        expect(products[0].displayPrice, '\$1.99');
         expect(products[1].productId, 'product2');
       });
 
@@ -161,16 +167,16 @@ void main() {
 
         expect(
           () => plugin.requestProducts(
-            RequestProductsParams(
-              productIds: ['product1'],
-              type: PurchaseType.inapp,
+            skus: ['product1'],
+            type: ProductType.inapp,
+          ),
+          throwsA(
+            isA<PurchaseError>().having(
+              (e) => e.code,
+              'error code',
+              ErrorCode.eNotInitialized,
             ),
           ),
-          throwsA(isA<PurchaseError>().having(
-            (e) => e.code,
-            'error code',
-            ErrorCode.eNotInitialized,
-          )),
         );
       });
 
@@ -181,10 +187,8 @@ void main() {
         await plugin.initConnection();
 
         final subscriptions = await plugin.requestProducts(
-          RequestProductsParams(
-            productIds: ['sub1', 'sub2'],
-            type: PurchaseType.subs,
-          ),
+          skus: ['sub1', 'sub2'],
+          type: ProductType.subs,
         );
 
         expect(subscriptions.length, 2);
@@ -201,11 +205,9 @@ void main() {
 
         await plugin.requestPurchase(
           request: RequestPurchase(
-            android: RequestPurchaseAndroid(
-              skus: ['product1'],
-            ),
+            android: RequestPurchaseAndroid(skus: ['product1']),
           ),
-          type: PurchaseType.inapp,
+          type: ProductType.inapp,
         );
 
         expect(methodChannelLog.last.method, 'buyItemByType');
@@ -225,17 +227,22 @@ void main() {
               obfuscatedProfileIdAndroid: 'profile456',
             ),
           ),
-          type: PurchaseType.inapp,
+          type: ProductType.inapp,
         );
 
         expect(
-            methodChannelLog.last.arguments['sku'] ??
-                methodChannelLog.last.arguments['productId'],
-            'product1');
+          methodChannelLog.last.arguments['sku'] ??
+              methodChannelLog.last.arguments['productId'],
+          'product1',
+        );
         expect(
-            methodChannelLog.last.arguments['obfuscatedAccountId'], 'user123');
-        expect(methodChannelLog.last.arguments['obfuscatedProfileId'],
-            'profile456');
+          methodChannelLog.last.arguments['obfuscatedAccountId'],
+          'user123',
+        );
+        expect(
+          methodChannelLog.last.arguments['obfuscatedProfileId'],
+          'profile456',
+        );
       });
 
       test('requestPurchase for subscription on Android', () async {
@@ -246,11 +253,9 @@ void main() {
 
         await plugin.requestPurchase(
           request: RequestPurchase(
-            android: RequestPurchaseAndroid(
-              skus: ['subscription1'],
-            ),
+            android: RequestPurchaseAndroid(skus: ['subscription1']),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         expect(methodChannelLog.last.method, 'buyItemByType');
@@ -274,12 +279,14 @@ void main() {
               ],
             ),
           ),
-          type: PurchaseType.subs,
+          type: ProductType.subs,
         );
 
         // Check that subscription1 is in the arguments
-        expect(methodChannelLog.last.arguments.toString(),
-            contains('subscription1'));
+        expect(
+          methodChannelLog.last.arguments.toString(),
+          contains('subscription1'),
+        );
       });
 
       test('requestPurchase on iOS', () async {
@@ -289,12 +296,8 @@ void main() {
         await plugin.initConnection();
 
         await plugin.requestPurchase(
-          request: RequestPurchase(
-            ios: RequestPurchaseIOS(
-              sku: 'ios.product',
-            ),
-          ),
-          type: PurchaseType.inapp,
+          request: RequestPurchase(ios: RequestPurchaseIOS(sku: 'ios.product')),
+          type: ProductType.inapp,
         );
 
         expect(methodChannelLog.last.method, 'buyProduct');
@@ -321,25 +324,27 @@ void main() {
         expect(methodChannelLog.last.method, 'consumeProduct');
       });
 
-      test('finishTransaction acknowledges non-consumable on Android',
-          () async {
-        plugin = FlutterInappPurchase.private(
-          FakePlatform(operatingSystem: 'android'),
-        );
-        await plugin.initConnection();
+      test(
+        'finishTransaction acknowledges non-consumable on Android',
+        () async {
+          plugin = FlutterInappPurchase.private(
+            FakePlatform(operatingSystem: 'android'),
+          );
+          await plugin.initConnection();
 
-        final purchase = Purchase(
-          productId: 'non_consumable.product',
-          transactionId: 'GPA.5678',
-          purchaseToken: 'acknowledge_token',
-          platform: IapPlatform.android,
-          isAcknowledgedAndroid: false,
-        );
+          final purchase = Purchase(
+            productId: 'non_consumable.product',
+            transactionId: 'GPA.5678',
+            purchaseToken: 'acknowledge_token',
+            platform: IapPlatform.android,
+            isAcknowledgedAndroid: false,
+          );
 
-        await plugin.finishTransaction(purchase);
+          await plugin.finishTransaction(purchase);
 
-        expect(methodChannelLog.last.method, 'acknowledgePurchase');
-      });
+          expect(methodChannelLog.last.method, 'acknowledgePurchase');
+        },
+      );
 
       test('finishTransaction on iOS', () async {
         plugin = FlutterInappPurchase.private(
@@ -357,7 +362,9 @@ void main() {
 
         expect(methodChannelLog.last.method, 'finishTransaction');
         expect(
-            methodChannelLog.last.arguments['transactionId'], '1000000123456');
+          methodChannelLog.last.arguments['transactionId'],
+          '1000000123456',
+        );
       });
 
       test('finishTransaction skips already acknowledged', () async {
@@ -378,9 +385,10 @@ void main() {
 
         // Should not call any method since already acknowledged
         expect(
-            methodChannelLog.isEmpty ||
-                methodChannelLog.last.method == 'initConnection',
-            true);
+          methodChannelLog.isEmpty ||
+              methodChannelLog.last.method == 'initConnection',
+          true,
+        );
       });
     });
 
@@ -403,20 +411,19 @@ void main() {
     group('Error Handling', () {
       test('handles purchase cancellation', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(
-          const MethodChannel('flutter_inapp'),
-          (MethodCall methodCall) async {
-            if (methodCall.method == 'initConnection') return true;
-            if (methodCall.method == 'buyItemByType' ||
-                methodCall.method == 'buyProduct') {
-              throw PlatformException(
-                code: 'E_USER_CANCELLED',
-                message: 'User cancelled the purchase',
-              );
-            }
-            return null;
-          },
-        );
+            .setMockMethodCallHandler(const MethodChannel('flutter_inapp'), (
+          MethodCall methodCall,
+        ) async {
+          if (methodCall.method == 'initConnection') return true;
+          if (methodCall.method == 'buyItemByType' ||
+              methodCall.method == 'buyProduct') {
+            throw PlatformException(
+              code: 'E_USER_CANCELLED',
+              message: 'User cancelled the purchase',
+            );
+          }
+          return null;
+        });
 
         plugin = FlutterInappPurchase.private(
           FakePlatform(operatingSystem: 'android'),
@@ -428,7 +435,7 @@ void main() {
             request: RequestPurchase(
               android: RequestPurchaseAndroid(skus: ['product1']),
             ),
-            type: PurchaseType.inapp,
+            type: ProductType.inapp,
           ),
           throwsA(isA<PurchaseError>()),
         );
@@ -436,19 +443,18 @@ void main() {
 
       test('handles network errors', () async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(
-          const MethodChannel('flutter_inapp'),
-          (MethodCall methodCall) async {
-            if (methodCall.method == 'initConnection') return true;
-            if (methodCall.method == 'getProducts') {
-              throw PlatformException(
-                code: 'E_NETWORK_ERROR',
-                message: 'Network connection failed',
-              );
-            }
-            return null;
-          },
-        );
+            .setMockMethodCallHandler(const MethodChannel('flutter_inapp'), (
+          MethodCall methodCall,
+        ) async {
+          if (methodCall.method == 'initConnection') return true;
+          if (methodCall.method == 'getProducts') {
+            throw PlatformException(
+              code: 'E_NETWORK_ERROR',
+              message: 'Network connection failed',
+            );
+          }
+          return null;
+        });
 
         plugin = FlutterInappPurchase.private(
           FakePlatform(operatingSystem: 'android'),
@@ -457,10 +463,8 @@ void main() {
 
         expect(
           () => plugin.requestProducts(
-            RequestProductsParams(
-              productIds: ['product1'],
-              type: PurchaseType.inapp,
-            ),
+            skus: ['product1'],
+            type: ProductType.inapp,
           ),
           throwsA(isA<PurchaseError>()),
         );

@@ -66,13 +66,16 @@ class AmazonInappPurchasePlugin : MethodCallHandler {
             "getProducts",
             "getSubscriptions" -> {
                 Log.d(TAG, call.method)
-                val skus = call.argument<ArrayList<String>>("skus")!!
-                val productSkus: MutableSet<String> = HashSet()
-                for (i in skus.indices) {
-                    Log.d(TAG, "Adding " + skus[i])
-                    productSkus.add(skus[i])
+                val ids = call.argument<ArrayList<String>>("productIds")
+                    ?: call.argument<ArrayList<String>>("skus")
+                if (ids.isNullOrEmpty()) {
+                    safeResult!!.error(TAG, "E_INVALID_ARGS", "Missing or empty 'productIds'.")
+                    return
                 }
-                PurchasingService.getProductData(productSkus)
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Requesting product data for ${ids.size} ids")
+                }
+                PurchasingService.getProductData(ids.toSet())
             }
             "getAvailableItemsByType" -> {
                 val type = call.argument<String>("type")
@@ -97,6 +100,7 @@ class AmazonInappPurchasePlugin : MethodCallHandler {
                 //val obfuscatedProfileId = call.argument<String>("obfuscatedProfileId")
                 val sku = call.argument<String>("sku")
                 val oldSku = call.argument<String>("oldSku")
+                // TODO(v6.4.0): Remove this commented prorationMode line
                 //val prorationMode = call.argument<Int>("prorationMode")!!
                 Log.d(TAG, "type=$type||sku=$sku||oldsku=$oldSku")
                 val requestId = PurchasingService.purchase(sku)

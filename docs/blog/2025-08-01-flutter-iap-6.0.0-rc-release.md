@@ -1,6 +1,6 @@
 ---
-slug: flutter-iap-6.0.0-rc-release
-title: 🎉 flutter_inapp_purchase 6.0.0-rc.1 Release Candidate - StoreKit 2 & Billing Client v8 Support
+slug: release-6.0.0-rc
+title: Version 6.0.0-rc.1 - StoreKit 2 & Billing Client v8 Support
 authors: [hyochan]
 tags: [release, storekit2, billing-client-v8, flutter, in-app-purchase]
 ---
@@ -51,11 +51,13 @@ Updated to the latest **Google Play Billing Client v8**, offering:
 This is a **major version update** with some breaking changes. Key changes include:
 
 1. **Minimum Requirements**:
+
    - iOS 11.0+ (previously iOS 9.0+)
    - Android API 21+ (previously API 19+)
    - Flutter 3.0+ (previously Flutter 2.0+)
 
 2. **API Changes**:
+
    - Updated error code enums to `lowerCamelCase`
    - Refined purchase request structure
    - Improved type safety
@@ -138,7 +140,7 @@ To test the release candidate in your project:
 
 ```yaml
 dependencies:
-  flutter_inapp_purchase: ^6.0.0-rc.1
+  flutter_inapp_purchase: ^6.4.0
 ```
 
 Or use the command:

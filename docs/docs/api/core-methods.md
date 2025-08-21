@@ -22,10 +22,12 @@ Future<void> initConnection() async
 **Description**: Establishes connection with the App Store (iOS) or Google Play Store (Android). Must be called before any other IAP operations.
 
 **Platform Differences**:
+
 - **iOS**: Connects to StoreKit 2 (iOS 15+) or StoreKit 1 (fallback)
 - **Android**: Connects to Google Play Billing Client v8
 
 **Example**:
+
 ```dart
 try {
   await FlutterInappPurchase.instance.initConnection();
@@ -52,6 +54,7 @@ Future<void> endConnection() async
 **Description**: Cleanly closes the store connection and frees resources. Should be called when IAP functionality is no longer needed.
 
 **Example**:
+
 ```dart
 try {
   await FlutterInappPurchase.instance.endConnection();
@@ -80,24 +83,28 @@ Future<void> finalize() async
 Loads product information from the store.
 
 ```dart
-Future<List<BaseProduct>> requestProducts(RequestProductsParams params) async
+Future<List<BaseProduct>> requestProducts({
+  required List<String> productIds,
+  PurchaseType type = PurchaseType.inapp,
+}) async
 ```
 
 **Parameters**:
-- `params` - Request parameters containing SKUs and product type
+
+- `productIds` - List of product identifiers
+- `type` - Product type (optional, defaults to `PurchaseType.inapp`)
 
 **Returns**: List of products with pricing and metadata
 
 **Example**:
-```dart
-final params = RequestProductsParams(
-  skus: ['product_1', 'product_2', 'premium_upgrade'],
-  type: PurchaseType.inapp,
-);
 
+```dart
 try {
-  final products = await FlutterInappPurchase.instance.requestProducts(params);
-  
+  final products = await FlutterInappPurchase.instance.requestProducts(
+    productIds: ['product_1', 'product_2', 'premium_upgrade'],
+    type: PurchaseType.inapp,
+  );
+
   for (final product in products) {
     print('Product: ${product.id}');
     print('Price: ${product.displayPrice}');
@@ -109,6 +116,7 @@ try {
 ```
 
 **Platform Differences**:
+
 - **iOS**: Uses `SKProductsRequest` (StoreKit)
 - **Android**: Uses `querySkuDetails()` (Billing Client)
 
@@ -119,19 +127,21 @@ try {
 Legacy method for loading in-app products.
 
 ```dart
-Future<List<IAPItem>> getProducts(List<String> skus) async
+Future<List<IapItem>> getProducts(List<String> skus) async
 ```
 
 **Parameters**:
+
 - `skus` - List of product identifiers
 
-**Returns**: List of `IAPItem` objects
+**Returns**: List of `IapItem` objects
 
 **Example**:
+
 ```dart
 final products = await FlutterInappPurchase.instance.getProducts([
   'coins_100',
-  'coins_500', 
+  'coins_500',
   'remove_ads'
 ]);
 
@@ -147,15 +157,17 @@ for (final product in products) {
 Legacy method for loading subscription products.
 
 ```dart
-Future<List<IAPItem>> getSubscriptions(List<String> skus) async
+Future<List<IapItem>> getSubscriptions(List<String> skus) async
 ```
 
 **Parameters**:
+
 - `skus` - List of subscription identifiers
 
-**Returns**: List of subscription `IAPItem` objects with subscription-specific metadata
+**Returns**: List of subscription `IapItem` objects with subscription-specific metadata
 
 **Example**:
+
 ```dart
 final subscriptions = await FlutterInappPurchase.instance.getSubscriptions([
   'premium_monthly',
@@ -183,10 +195,12 @@ Future<void> requestPurchase({
 ```
 
 **Parameters**:
+
 - `request` - Platform-specific purchase request
 - `type` - Purchase type (`PurchaseType.inapp` or `PurchaseType.subs`)
 
 **Example**:
+
 ```dart
 // Create platform-specific request
 final request = RequestPurchase(
@@ -211,6 +225,7 @@ try {
 ```
 
 **Platform Differences**:
+
 - **iOS**: Single `sku`, supports `quantity` and promotional offers
 - **Android**: Array of `skus`, supports obfuscated user IDs
 
@@ -243,11 +258,13 @@ Future<void> requestPurchaseAuto({
 ```
 
 **Parameters**:
+
 - `sku` - Product identifier
 - `type` - Purchase type
 - Platform-specific optional parameters
 
 **Example**:
+
 ```dart
 try {
   await FlutterInappPurchase.instance.requestPurchaseAuto(
@@ -275,10 +292,12 @@ Future<void> finishTransaction(
 ```
 
 **Parameters**:
+
 - `purchase` - The purchased item to finish
 - `isConsumable` - Whether the product is consumable (Android only)
 
 **Example**:
+
 ```dart
 // In your purchase success handler
 FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
@@ -286,13 +305,13 @@ FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
     try {
       // Deliver the product to user
       await deliverProduct(purchase.productId);
-      
+
       // Finish the transaction
       await FlutterInappPurchase.instance.finishTransaction(
         purchase,
         isConsumable: true, // For consumable products
       );
-      
+
       print('Transaction completed successfully');
     } catch (e) {
       print('Failed to finish transaction: $e');
@@ -302,6 +321,7 @@ FlutterInappPurchase.purchaseUpdated.listen((purchase) async {
 ```
 
 **Platform Behavior**:
+
 - **iOS**: Calls `finishTransaction` on the transaction
 - **Android**: Calls `consumePurchase` (consumable) or `acknowledgePurchase` (non-consumable)
 
@@ -318,9 +338,11 @@ Future<void> consumePurchaseAndroid({
 ```
 
 **Parameters**:
+
 - `purchaseToken` - The purchase token to consume
 
 **Example**:
+
 ```dart
 // Android-specific consumption
 if (Platform.isAndroid) {
@@ -350,10 +372,11 @@ Future<List<Purchase>> getAvailablePurchases() async
 **Returns**: List of available purchases
 
 **Example**:
+
 ```dart
 try {
   final purchases = await FlutterInappPurchase.instance.getAvailablePurchases();
-  
+
   print('Found ${purchases.length} available purchases');
   for (final purchase in purchases) {
     print('Product: ${purchase.productId}');
@@ -377,10 +400,11 @@ Future<List<Purchase>> getPurchaseHistories() async
 **Returns**: List of historical purchases
 
 **Example**:
+
 ```dart
 try {
   final history = await FlutterInappPurchase.instance.getPurchaseHistories();
-  
+
   print('Purchase history: ${history.length} items');
   for (final purchase in history) {
     print('${purchase.productId} - ${purchase.transactionDate}');
@@ -401,10 +425,11 @@ Future<void> restorePurchases() async
 ```
 
 **Example**:
+
 ```dart
 try {
   await FlutterInappPurchase.instance.restorePurchases();
-  
+
   // Check available purchases after restoration
   final restored = await FlutterInappPurchase.instance.getAvailablePurchases();
   print('Restored ${restored.length} purchases');
@@ -414,6 +439,7 @@ try {
 ```
 
 **Platform Behavior**:
+
 - **iOS**: Triggers App Store purchase restoration
 - **Android**: Returns cached purchase data
 
@@ -430,6 +456,7 @@ Future<void> presentCodeRedemptionSheetIOS() async
 ```
 
 **Example**:
+
 ```dart
 if (Platform.isIOS) {
   try {
@@ -453,6 +480,7 @@ Future<void> showManageSubscriptionsIOS() async
 ```
 
 **Example**:
+
 ```dart
 if (Platform.isIOS) {
   try {
@@ -476,6 +504,7 @@ Future<String?> getAppStoreCountryIOS() async
 **Returns**: Country code or null
 
 **Example**:
+
 ```dart
 if (Platform.isIOS) {
   final country = await FlutterInappPurchase.instance.getAppStoreCountryIOS();
@@ -494,6 +523,7 @@ Future<void> deepLinkToSubscriptionsAndroid() async
 ```
 
 **Example**:
+
 ```dart
 if (Platform.isAndroid) {
   try {
@@ -517,6 +547,7 @@ Future<int> getConnectionStateAndroid() async
 **Returns**: Connection state code
 
 **Example**:
+
 ```dart
 if (Platform.isAndroid) {
   final state = await FlutterInappPurchase.instance.getConnectionStateAndroid();
@@ -550,17 +581,18 @@ try {
 ## Best Practices
 
 ### 1. Connection Management
+
 ```dart
 class IAPManager {
   static bool _isInitialized = false;
-  
+
   static Future<void> initialize() async {
     if (!_isInitialized) {
       await FlutterInappPurchase.instance.initConnection();
       _isInitialized = true;
     }
   }
-  
+
   static Future<void> dispose() async {
     if (_isInitialized) {
       await FlutterInappPurchase.instance.endConnection();
@@ -571,29 +603,33 @@ class IAPManager {
 ```
 
 ### 2. Product Loading with Caching
+
 ```dart
 class ProductManager {
   static List<BaseProduct>? _cachedProducts;
   static DateTime? _lastFetch;
   static const _cacheTimeout = Duration(hours: 1);
-  
+
   static Future<List<BaseProduct>> getProducts(List<String> skus) async {
-    if (_cachedProducts != null && 
+    if (_cachedProducts != null &&
         _lastFetch != null &&
         DateTime.now().difference(_lastFetch!) < _cacheTimeout) {
       return _cachedProducts!;
     }
-    
-    final params = RequestProductsParams(skus: skus, type: PurchaseType.inapp);
-    _cachedProducts = await FlutterInappPurchase.instance.requestProducts(params);
+
+    _cachedProducts = await FlutterInappPurchase.instance.requestProducts(
+      productIds: skus,
+      type: PurchaseType.inapp,
+    );
     _lastFetch = DateTime.now();
-    
+
     return _cachedProducts!;
   }
 }
 ```
 
 ### 3. Purchase Flow with Error Handling
+
 ```dart
 Future<void> makePurchase(String sku) async {
   try {
@@ -601,19 +637,19 @@ Future<void> makePurchase(String sku) async {
       ios: RequestPurchaseIOS(sku: sku, quantity: 1),
       android: RequestPurchaseAndroid(skus: [sku]),
     );
-    
+
     await FlutterInappPurchase.instance.requestPurchase(
       request: request,
       type: PurchaseType.inapp,
     );
-    
+
     // Success handling happens in purchaseUpdated listener
   } on PurchaseError catch (e) {
     if (e.code == ErrorCode.eUserCancelled) {
       // User cancelled - don't show error
       return;
     }
-    
+
     // Show error to user
     showErrorDialog(e.message);
   }
@@ -625,7 +661,7 @@ Future<void> makePurchase(String sku) async {
 ⚠️ **Breaking Changes from v5.x:**
 
 1. **Method Names**: `requestPurchase()` now requires `RequestPurchase` object
-2. **Parameters**: Platform-specific parameters moved to request objects  
+2. **Parameters**: Platform-specific parameters moved to request objects
 3. **Error Handling**: `PurchaseError` replaces simple string errors
 4. **Initialization**: Must call `initConnection()` before other operations
 

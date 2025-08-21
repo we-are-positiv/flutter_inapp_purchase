@@ -1,6 +1,35 @@
 # Implementation Guidelines
 
+## API Changes
+
+### requestProducts API (Updated)
+The `requestProducts` method now uses direct parameters instead of a parameter object:
+
+```dart
+// Old API (removed):
+final products = await iap.requestProducts(
+  RequestProductsParams(
+    skus: ['product_id'],
+    type: PurchaseType.inapp,
+  ),
+);
+
+// New API:
+final products = await iap.requestProducts(
+  skus: ['product_id'],
+  type: PurchaseType.inapp,  // Optional, defaults to PurchaseType.inapp
+);
+```
+
+The `RequestProductsParams` class has been removed to simplify the API.
+
 ## Flutter-Specific Guidelines
+
+### Documentation Style
+
+- **Avoid using emojis** in documentation, especially in headings
+- Keep documentation clean and professional for better readability
+- Focus on clear, concise technical writing
 
 ### Pre-Commit Checks
 
@@ -9,12 +38,18 @@ Before committing any changes, run these commands in order and ensure ALL pass:
 1. **Format check**: `dart format --set-exit-if-changed .`
    - This will fail if any files need formatting (exit code 1)
    - If it fails, run `dart format .` to fix formatting, then retry
-2. **Test validation**: `flutter test`
+   - Always format code before committing to maintain consistent style
+2. **Lint check**: `flutter analyze`
+   - Fix any lint issues before committing
+   - Pay attention to type inference errors and explicitly specify type arguments when needed
+3. **Test validation**: `flutter test`
    - All tests must pass
-3. **Final verification**: Re-run `dart format --set-exit-if-changed .` to confirm no formatting issues
-4. Only commit if ALL checks succeed with exit code 0
+4. **Final verification**: Re-run `dart format --set-exit-if-changed .` to confirm no formatting issues
+5. Only commit if ALL checks succeed with exit code 0
 
-**Important**: Use `--set-exit-if-changed` flag to match CI behavior and catch formatting issues locally before they cause CI failures.
+**Important**: 
+- Use `--set-exit-if-changed` flag to match CI behavior and catch formatting issues locally before they cause CI failures
+- When using generic functions like `showModalBottomSheet`, always specify explicit type arguments (e.g., `showModalBottomSheet<void>`) to avoid type inference errors
 
 ### Platform-Specific Naming Conventions
 

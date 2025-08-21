@@ -1,9 +1,9 @@
 hyochan:
-  name: Hyo Chang Lee
-  title: Creator of flutter_inapp_purchase & expo-iap
+  name: Hyo
+  title: Maintainer of flutter_inapp_purchase & expo-iap
   url: https://github.com/hyochan
   image_url: https://github.com/hyochan.png
   page: true
   socials:
-    x: hyochan
+    x: hyodotdev
     github: hyochan
