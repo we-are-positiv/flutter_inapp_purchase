@@ -1,6 +1,6 @@
 ---
-slug: flutter-iap-6.0.0-rc-release
-title: 🎉 flutter_inapp_purchase 6.0.0-rc.1 Release Candidate - StoreKit 2 & Billing Client v8 Support
+slug: release-6.0.0-rc
+title: Version 6.0.0-rc.1 - StoreKit 2 & Billing Client v8 Support
 authors: [hyochan]
 tags: [release, storekit2, billing-client-v8, flutter, in-app-purchase]
 ---
